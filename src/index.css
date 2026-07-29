@@ -2349,12 +2349,16 @@ input { font-family: inherit; }
 .login-card.login-card-ready { opacity: 1; transform: translateY(0) scale(1); }
 .login-card.shake { animation: loginShake .55s cubic-bezier(.4,0,.2,1); }
 
-/* Animated gradient border */
+/* Animated gradient border — keep behind card content */
 .login-card-border {
-  position: absolute; inset: 0; border-radius: 24px; pointer-events: none;
+  position: absolute; inset: 0; border-radius: 24px; pointer-events: none; z-index: 0;
   background: linear-gradient(var(--bg2), var(--bg2)) padding-box,
               linear-gradient(135deg, rgba(139,92,246,.7), rgba(99,102,241,.4), rgba(34,211,238,.4), rgba(139,92,246,.7)) border-box;
   border: 1.5px solid transparent;
+}
+.login-card > *:not(.login-card-border) {
+  position: relative;
+  z-index: 1;
 }
 
 /* Logo */
