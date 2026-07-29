@@ -1,7 +1,7 @@
 # Redis — Complete Study Notes
 
 > Self-contained. No internet needed.
-> Covers: Data Types → Internals → Persistence → Replication → Cluster → Production Patterns
+> Covers: Data Types → Internals → Persistence → Replication → Cluster → Production Patterns → Parts 15–18 (HZSET, FUNCTION, Streams, Client Cache)
 
 ---
 
@@ -23,10 +23,10 @@
 | [12](#part-12--advanced-production-patterns) | Advanced Production Patterns | Distributed lock, rate limiter, session store |
 | [13](#part-13--quick-reference) | Quick Reference | Memory, latency, expiry, keyspace |
 | [14](#part-14--senior-level-tradeoffs-and-design-decisions) | Senior-Level Tradeoffs | Single thread, 16384 slots, no B-Tree |
-| [NEW](#hzset-pattern--hash--zset-combined-leaderboard-with-metadata) | **HZSET Pattern** | **Hash + ZSet combined for leaderboard + metadata** |
-| [NEW](#redis-function--fcall-redis-70) | **Redis FUNCTION** | **Redis 7.x named functions vs EVAL** |
-| [NEW](#redis-streams--consumer-groups-deep-dive) | **Streams (Deep Dive)** | **Consumer groups, XREADGROUP, XCLAIM** |
-| [NEW](#redis-client-side-caching-resp3-tracking) | **Client-Side Caching** | **RESP3 tracking, invalidation notifications** |
+| [15](#part-15--hzset-pattern) | HZSET Pattern | Hash + ZSet for leaderboard + metadata |
+| [16](#part-16--redis-function--fcall) | Redis FUNCTION | Redis 7.x named functions vs EVAL |
+| [17](#part-17--redis-streams--consumer-groups) | Streams (Deep Dive) | Consumer groups, XREADGROUP, XCLAIM |
+| [18](#part-18--client-side-caching) | Client-Side Caching | RESP3 tracking, invalidation notifications |
 
 ---
 
@@ -1608,9 +1608,9 @@ replica-lazy-flush yes          # FLUSHDB during full sync uses async free
 
 ---
 
-## PRODUCTION PATTERNS — ADVANCED (Redis 7.x + Combined Data Structure Patterns)
+## PART 15 — HZSET PATTERN
 
-### HZSET Pattern — Hash + ZSet Combined (Leaderboard with Metadata)
+### Hash + ZSet Combined (Leaderboard with Metadata)
 
 **What "HZSET" means**: Not a Redis command but a widely-used production pattern combining a **Sorted Set (ZSet)** for ranking and a **Hash** for storing rich metadata. Together they solve a problem neither can solve alone.
 
@@ -1718,6 +1718,10 @@ EXEC
 
 ---
 
+---
+
+## PART 16 — REDIS FUNCTION / FCALL
+
 ### Redis FUNCTION / FCALL (Redis 7.0+)
 
 **Why FUNCTION over EVAL (Lua scripts)**:
@@ -1773,6 +1777,10 @@ FUNCTION RESTORE <blob>
 > 🌍 **Real-World:** Upstash (serverless Redis) migrated their customer-facing analytics functions from `EVALSHA` to Redis FUNCTION in their Redis 7.0 upgrade. The key benefit for their use case: FUNCTION persists through AOF/RDB, so when a customer's Redis instance is restored from backup, their registered functions are also restored — no need for their application to re-register scripts on startup. For Upstash's serverless model where Redis instances may start/stop frequently, this persistence guarantee dramatically simplified their client initialization logic.
 
 ---
+
+---
+
+## PART 17 — REDIS STREAMS — CONSUMER GROUPS
 
 ### Redis Streams — Consumer Groups (Deep Dive)
 
@@ -1845,6 +1853,10 @@ If delivery_count > 3:
 > 🌍 **Real-World:** Brex (corporate card fintech) uses Redis Streams as a lightweight task queue for their transaction enrichment pipeline. When a transaction arrives, it's `XADD`-ed to a stream. A consumer group of 10 worker processes uses `XREADGROUP` to claim transactions, enrich them with merchant data, and `XACK` on success. Unacknowledged transactions (worker crash mid-processing) are detected via `XPENDING` after 60 seconds and `XCLAIM`-ed to another worker. For Brex's volume (~1M transactions/day), Redis Streams provides Kafka-like reliability at a fraction of the operational overhead.
 
 ---
+
+---
+
+## PART 18 — CLIENT-SIDE CACHING
 
 ### Redis Client-Side Caching (RESP3 Tracking)
 

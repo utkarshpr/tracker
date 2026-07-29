@@ -1,14 +1,35 @@
-# DSA — Complete Study Notes (Patterns + Java Code + Complexity)
+# DSA — Problem-First Study Notes (Patterns → Problems → Code)
 
-Self-contained. No internet needed. All code in Java.
+Self-contained. **Code in Java** (port to Go when practicing). Theory is minimal — **problems drive learning**.
 
 **Reference Sheet**: https://takeuforward.org/dsa/strivers-a2z-sheet-learn-dsa-a-to-z
+
+---
+
+## How to Use (Problem-Centric)
+
+```text
+1. Pick a pattern section
+2. Solve the numbered problems in "Solve order" (timed, no peeking at code)
+3. Only then read the template code below
+4. Re-code from blank the next day
+5. Track fails in weak-patterns.md
+```
+
+| Goal | Rule |
+|------|------|
+| Pattern recognition | Name the pattern in ≤ 2 min from the problem statement |
+| Coding | Finish Medium template in ≤ 25 min |
+| Review | If you needed hints → mark weak; re-solve in 24h |
+
+**Jump to:** [FAANG Must-Solve](#faang-must-solve-list) · [Pattern Quick Reference](#key-patterns-quick-reference) · [Striver A2Z lists](#strivers-a2z-sheet--problem-list-by-topic)
 
 ---
 
 ## Table of Contents
 
 - [Complexity Cheat Sheet](#complexity-cheat-sheet)
+- [FAANG Must-Solve List](#faang-must-solve-list) ← start here for interview density
 - [Week 1 — Arrays and Hashing](#week-1--arrays-and-hashing)
   - [Prefix Sum](#prefix-sum)
   - [Sliding Window](#sliding-window)
@@ -46,25 +67,6 @@ Self-contained. No internet needed. All code in Java.
 - [Bit Manipulation](#bit-manipulation)
 - [Key Patterns Quick Reference](#key-patterns-quick-reference)
 - [Striver's A2Z Sheet — Problem List by Topic](#strivers-a2z-sheet--problem-list-by-topic)
-  - [Step 1: Learn the Basics (54)](#step-1-learn-the-basics-54-problems)
-  - [Step 2: Sorting (7)](#step-2-sorting-techniques-7-problems)
-  - [Step 3: Arrays (40)](#step-3-arrays-40-problems)
-  - [Step 4: Binary Search (32)](#step-4-binary-search-32-problems)
-  - [Step 5: Strings (15)](#step-5-strings-15-problems)
-  - [Step 6: Linked List (31)](#step-6-linked-list-31-problems)
-  - [Step 7: Recursion & Backtracking (25)](#step-7-recursion--backtracking-25-problems)
-  - [Step 8: Bit Manipulation (18)](#step-8-bit-manipulation-18-problems)
-  - [Step 9: Stack and Queues (30)](#step-9-stack-and-queues-30-problems)
-  - [Step 10: Sliding Window & Two Pointer (12)](#step-10-sliding-window--two-pointer-12-problems)
-  - [Step 11: Heaps (17)](#step-11-heaps-17-problems)
-  - [Step 12: Greedy Algorithms (15)](#step-12-greedy-algorithms-15-problems)
-  - [Step 13: Binary Trees (38)](#step-13-binary-trees-38-problems)
-  - [Step 14: Binary Search Trees (16)](#step-14-binary-search-trees-16-problems)
-  - [Step 15: Graphs (53)](#step-15-graphs-53-problems)
-  - [Step 16: Dynamic Programming (55)](#step-16-dynamic-programming-55-problems)
-  - [Step 17: Tries (7)](#step-17-tries-7-problems)
-  - [Step 18: Advanced Strings (9)](#step-18-advanced-strings-9-problems)
-  - [FAANG Must-Solve List](#faang-must-solve-list)
 
 ---
 
@@ -87,7 +89,37 @@ O(n)       — Recursion stack depth n, hash map of n elements
 O(n²)      — 2D DP table
 ```
 
-> 🌍 **Real-World:** Google's core search infrastructure operates at near-O(1) per query by pre-building inverted hash indexes mapping every keyword to a list of document IDs — the entire query path avoids O(n) scans at serving time. LinkedIn's feed ranking pipeline uses O(n log n) sorts on scoring vectors millions of times per second, making the constant factor behind "n log n" a first-class engineering concern.
+
+---
+
+## FAANG Must-Solve List
+
+> 🎯 **Do this list first for interview density.** Check off only when you can code cold in ≤25 min (Medium) / ≤40 min (Hard).
+
+> Pattern Recognition: name the pattern before coding; explain approach before typing.
+
+| Problem | Pattern | Difficulty |
+|---------|---------|------------|
+| Two Sum (LC 1) | Hash Map | Easy |
+| 3Sum (LC 15) | Sort + Two Pointers | Medium |
+| Container With Most Water (LC 11) | Two Pointers | Medium |
+| Merge Intervals (LC 56) | Sort + Sweep | Medium |
+| LRU Cache (LC 146) | DLL + HashMap | Medium |
+| LFU Cache (LC 460) | HashMap + Min-heap | Hard |
+| Word Ladder (LC 127) | BFS | Hard |
+| Course Schedule I+II (LC 207, 210) | Topo Sort | Medium |
+| Number of Islands (LC 200) | BFS/DFS | Medium |
+| Coin Change (LC 322) | DP | Medium |
+| LCS (LC 1143) | DP on Strings | Medium |
+| Edit Distance (LC 72) | DP on Strings | Hard |
+| Burst Balloons (LC 312) | Partition DP | Hard |
+| Find Median from Stream (LC 295) | Two Heaps | Hard |
+| Serialize/Deserialize Binary Tree (LC 297) | BFS/DFS | Hard |
+| Median of Two Sorted Arrays (LC 4) | Binary Search | Hard |
+| Alien Dictionary (LC 269) | Topo Sort | Hard |
+| Trapping Rain Water (LC 42) | Monotonic Stack | Hard |
+| Sliding Window Maximum (LC 239) | Monotonic Deque | Hard |
+| Longest Consecutive Sequence (LC 128) | HashSet | Medium |
 
 ---
 
@@ -99,7 +131,19 @@ O(n²)      — 2D DP table
 
 ### Prefix Sum
 
-> 🌍 **Real-World:** Amazon uses prefix sums on time-series sales data to compute rolling revenue windows in O(1) per query after an O(n) build pass — the same technique powers their real-time inventory dashboards. Google Analytics applies prefix sums to page-view event arrays to answer "total views between date A and date B" across billions of rows without re-scanning.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Subarray Sum Equals K | 560 | sum = k, contiguous | prefix + HashMap of counts |
+| 2 | Contiguous Array | 525 | equal 0/1 | map 0→-1, prefix first-seen |
+| 3 | Product of Array Except Self | 238 | no division | prefix/suffix products |
+| 4 | Range Sum Query Immutable | 303 | many range sums | prefix array |
+| 5 | Find Pivot Index | 724 | left sum = right | running prefix |
+
+**Solve order:** 303 → 560 → 525 → 238
+
+
 
 > **💡 Pattern Recognition:** Use **Prefix Sum** when you need repeated range sum queries on a static array, or when searching for a subarray whose sum equals a target value k.
 
@@ -143,7 +187,20 @@ int subarraySum(int[] nums, int k) {
 
 ### Sliding Window
 
-> 🌍 **Real-World:** Netflix uses a sliding window over real-time viewer event streams to detect binge-watching sessions — the window tracks contiguous playback events and updates engagement metrics without reprocessing the full history. Cloudflare's DDoS rate-limiter counts requests in a sliding time window per IP address, evicting old events as the window advances to enforce per-second thresholds in O(1) amortized time.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Longest Substring Without Repeating | 3 | longest unique window | variable window + last index map |
+| 2 | Minimum Window Substring | 76 | smallest covering window | shrink when need met |
+| 3 | Longest Repeating Character Replacement | 424 | ≤k replacements | window + maxFreq |
+| 4 | Permutation in String | 567 | anagram window | fixed window freq |
+| 5 | Sliding Window Maximum | 239 | max in every window of k | monotonic deque |
+| 6 | Max Consecutive Ones III | 1004 | ≤k zeros | variable window |
+
+**Solve order:** 3 → 567 → 1004 → 424 → 76 → 239
+
+
 
 > **💡 Pattern Recognition:** Use **Sliding Window** for problems involving a contiguous subarray or substring that must satisfy some constraint (max length, min length, exactly k distinct characters, etc.). If the problem says "contiguous" and has a constraint, think sliding window first.
 
@@ -204,7 +261,20 @@ String minWindow(String s, String t) {
 
 ### Two Pointers
 
-> 🌍 **Real-World:** Spotify's deduplication pipeline uses two pointers on sorted play-history arrays to merge and deduplicate song entries in O(n) without allocating extra hash maps — critical when handling hundreds of millions of user records. Facebook's friend-suggestion system uses a two-pointer intersection on sorted follower lists to compute mutual friends in linear time per pair of users.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Two Sum II (sorted) | 167 | sorted pair sum | l/r move by sum |
+| 2 | 3Sum | 15 | triplets sum 0 | sort + 2-pointer, skip dups |
+| 3 | Container With Most Water | 11 | max area | move shorter height |
+| 4 | Trapping Rain Water | 42 | water between bars | two pointers or mono stack |
+| 5 | Valid Palindrome | 125 | alnum palindrome | inward scan |
+| 6 | Move Zeroes | 283 | partition | write pointer |
+
+**Solve order:** 167 → 11 → 15 → 42
+
+
 
 > **💡 Pattern Recognition:** Use **Two Pointers** on sorted arrays when you need to find a pair (or triple) summing to a target, or when you need to partition an array in-place. If the array is not sorted and sorting is allowed, sort first then apply two pointers.
 
@@ -264,7 +334,17 @@ List<List<Integer>> threeSum(int[] nums) {
 
 ### Kadane's Algorithm (Maximum Subarray — LC 53)
 
-> 🌍 **Real-World:** Robinhood applies Kadane's algorithm to detect the highest-gain trading window in a price series — the maximum subarray sum corresponds to the optimal single buy-sell interval. Financial risk systems at JPMorgan use the same pattern to find the worst consecutive drawdown period (minimum subarray) in portfolio returns.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Maximum Subarray | 53 | max contiguous sum | Kadane |
+| 2 | Maximum Product Subarray | 152 | product, negatives | track min & max |
+| 3 | Maximum Sum Circular Subarray | 918 | wrap-around | kadane + total-minKadane |
+
+**Solve order:** 53 → 152 → 918
+
+
 
 > **💡 Pattern Recognition:** Use **Kadane's Algorithm** whenever you need the maximum (or minimum) sum contiguous subarray. It is the go-to O(n) solution and is the basis for many harder subarray DP problems.
 
@@ -287,7 +367,19 @@ int maxSubarray(int[] nums) {
 
 ### Monotonic Stack
 
-> 🌍 **Real-World:** Amazon's warehouse slotting system uses a monotonic stack to compute the "next larger item" visibility problem in 3D shelf layouts — equivalent to the histogram/span problem. Trading platforms like Citadel use monotonic stacks to build real-time stock span indicators (how many consecutive days the price was below today's price) in O(n) over streaming tick data.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Next Greater Element I/II | 496/503 | next greater | mono decreasing stack |
+| 2 | Daily Temperatures | 739 | days until warmer | mono stack of indices |
+| 3 | Largest Rectangle in Histogram | 84 | widths via nearest smaller | mono increasing |
+| 4 | Trapping Rain Water | 42 | water | mono stack or 2-pointer |
+| 5 | Online Stock Span | 901 | consecutive ≤ today | mono stack |
+
+**Solve order:** 739 → 496 → 84 → 42
+
+
 
 > **💡 Pattern Recognition:** Use a **Monotonic Stack** when you need to find the next/previous greater or smaller element for each index. If the problem involves histogram bars, span calculations, or "how many days until a warmer temperature", reach for a monotonic stack.
 
@@ -348,7 +440,18 @@ int[] dailyTemperatures(int[] temps) {
 
 ### Cyclic Sort
 
-> 🌍 **Real-World:** Database systems like PostgreSQL use a cyclic-sort-like placement strategy when assigning auto-increment IDs to rows — detecting gaps (missing IDs) in a compact range is equivalent to the missing-number problem cyclic sort solves in O(n) time and O(1) space.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Missing Number | 268 | 0..n missing one | xor or cyclic |
+| 2 | Find All Numbers Disappeared | 448 | 1..n missing | cyclic / mark index |
+| 3 | Find the Duplicate Number | 287 | 1..n one dup | Floyd or cyclic |
+| 4 | First Missing Positive | 41 | first missing >0 | cyclic in-place |
+
+**Solve order:** 268 → 448 → 287 → 41
+
+
 
 > **💡 Pattern Recognition:** Use **Cyclic Sort** when the problem involves an array containing numbers in the range `[1, N]` (or `[0, N]`) and asks to find missing, duplicate, or misplaced elements. The key insight is that number `x` belongs at index `x-1`.
 
@@ -382,7 +485,22 @@ List<Integer> findMissingNumbers(int[] nums) {  // LC 448
 
 ### Binary Search
 
-> 🌍 **Real-World:** Google's Spanner distributed database uses binary search on sorted SSTable index files to locate record ranges in O(log n) disk seeks instead of full scans — this is the fundamental operation behind every indexed read across billions of rows. Amazon's fulfillment routing uses "binary search on the answer" to determine the minimum fleet capacity that can ship all packages within a deadline, directly mirroring the Koko Eating Bananas pattern.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Binary Search | 704 | classic | mid, lo/hi |
+| 2 | Search Insert Position | 35 | lower_bound | left-biased BS |
+| 3 | Find First and Last Position | 34 | range | left + right bound |
+| 4 | Search in Rotated Sorted Array | 33 | rotated | identify sorted half |
+| 5 | Find Minimum in Rotated Sorted | 153 | rotated min | BS on condition |
+| 6 | Koko Eating Bananas | 875 | min speed | BS on answer |
+| 7 | Median of Two Sorted Arrays | 4 | two arrays | partition BS |
+| 8 | Capacity To Ship Packages | 1011 | min capacity | BS on answer |
+
+**Solve order:** 704 → 34 → 33 → 153 → 875 → 1011 → 4
+
+
 
 > **💡 Pattern Recognition:** Use **Binary Search** on any sorted array for O(log n) search. Also apply it as "binary search on the answer" whenever the problem has a monotonic predicate: if `f(x)` is false for all values below a threshold and true for all values above, binary search finds that threshold.
 
@@ -448,7 +566,20 @@ class ListNode {
 
 ### Fast/Slow Pointer (Floyd's Algorithm)
 
-> 🌍 **Real-World:** Linux kernel's memory allocator uses cycle detection (conceptually equivalent to Floyd's algorithm) to find circular references in linked free-block lists — an O(1)-space approach that prevents unbounded scans. Java's garbage collector detects reference cycles in object graphs using the same two-pointer principle before reclaiming heap memory.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Linked List Cycle | 141 | cycle? | floyd |
+| 2 | Linked List Cycle II | 142 | cycle entry | meet then reset |
+| 3 | Middle of the Linked List | 876 | mid node | slow/fast |
+| 4 | Palindrome Linked List | 234 | palindrome | mid + reverse |
+| 5 | Happy Number | 202 | cycle in transform | floyd on values |
+| 6 | Reorder List | 143 | L0 Ln L1… | mid + reverse + merge |
+
+**Solve order:** 141 → 876 → 142 → 234 → 143
+
+
 
 > **💡 Pattern Recognition:** Use **Fast/Slow Pointers** (Floyd's Tortoise and Hare) for cycle detection, finding the middle of a list, or any problem where you need two runners moving at different speeds through a linear structure.
 
@@ -525,7 +656,17 @@ void reorderList(ListNode head) {
 
 ### LRU Cache (LC 146)
 
-> 🌍 **Real-World:** Facebook's Memcached deployment uses LRU eviction across terabytes of in-memory cache — the same HashMap + doubly-linked-list design ensures O(1) get and set while automatically evicting the least recently accessed objects when memory is full. CPU hardware L1/L2 caches in Intel and AMD processors implement LRU (or pseudo-LRU) at the hardware level to keep the hottest data close to the execution units.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | LRU Cache | 146 | O(1) get/put | HashMap + DLL |
+| 2 | Design Browser History | 1472 | back/forward | two stacks / DLL |
+| 3 | LFU Cache | 460 | least frequent | freq lists + map |
+
+**Solve order:** 146 → 460
+
+
 
 > **💡 Pattern Recognition:** **LRU Cache** combines a HashMap for O(1) lookup with a doubly-linked list for O(1) insertion/deletion of the least-recently-used entry. Use dummy head and tail sentinels to eliminate edge-case null checks.
 
@@ -590,7 +731,15 @@ class LRUCache {
 
 ### LFU Cache (LC 460)
 
-> 🌍 **Real-World:** Akamai's CDN edge servers use LFU-style eviction to retain viral content that has been requested thousands of times, even if it wasn't requested in the last few minutes — pure LRU would incorrectly evict high-frequency content after a brief lull. Redis implements both LRU and LFU eviction policies (configurable via `maxmemory-policy`) for exactly this reason, with LFU preferred for workloads with long-tail access patterns.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | LFU Cache | 460 | min freq eviction | HashMap + freq → DLL |
+
+**Must code once cold.** Edge: same freq → LRU within that freq.
+
+
 
 > **💡 Pattern Recognition:** **LFU Cache** evicts the least-frequently-used entry (ties broken by least-recently-used). Maintain a `minFreq` counter and a map from frequency to an ordered set of keys at that frequency (`LinkedHashMap` preserves insertion order for LRU tie-breaking).
 
@@ -657,7 +806,20 @@ class TreeNode {
 
 ### Tree Traversals
 
-> 🌍 **Real-World:** Git uses a post-order DFS traversal of its commit DAG to compute reachability — before deleting objects during garbage collection, it visits children before parents to ensure no live object is removed. React's virtual DOM reconciliation performs a pre-order DFS traversal to diff the component tree, visiting parent nodes before their children so context values propagate correctly downward.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Binary Tree Level Order | 102 | by level | BFS queue |
+| 2 | Binary Tree Zigzag Level Order | 103 | zigzag | BFS + reverse |
+| 3 | Maximum Depth | 104 | depth | DFS/BFS |
+| 4 | Invert Binary Tree | 226 | mirror | DFS swap |
+| 5 | Same Tree | 100 | equal? | DFS |
+| 6 | Path Sum | 112 | root→leaf sum | DFS remainder |
+
+**Solve order:** 104 → 226 → 102 → 112 → 103
+
+
 
 > **💡 Pattern Recognition:** Use **iterative inorder** when you need to avoid stack overflow on deep trees or when you want to pause/resume traversal (e.g., BST iterator). Use **level-order BFS** for anything involving tree levels, minimum depth, or zigzag patterns.
 
@@ -705,7 +867,20 @@ List<List<Integer>> levelOrder(TreeNode root) {
 
 ### BST Operations
 
-> 🌍 **Real-World:** MySQL's InnoDB storage engine uses a B+ tree (a generalized BST) for all indexed columns — range queries like `WHERE age BETWEEN 25 AND 35` exploit BST ordering to scan only the relevant leaf pages in O(log n + k). GitHub's code search uses BSTs internally to store and query sorted token frequencies during indexing, enabling `ceilingKey` / `floorKey` operations for approximate matching.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Validate BST | 98 | BST property | bounds DFS |
+| 2 | Lowest Common Ancestor BT | 236 | LCA | postorder |
+| 3 | LCA of BST | 235 | BST LCA | walk by value |
+| 4 | Diameter of Binary Tree | 543 | longest path | height DFS |
+| 5 | Serialize/Deserialize | 297 | codec | BFS/DFS string |
+| 6 | Kth Smallest in BST | 230 | kth | inorder |
+
+**Solve order:** 98 → 235 → 236 → 543 → 230 → 297
+
+
 
 > **💡 Pattern Recognition:** For **BST validation**, pass down valid `[lo, hi]` bounds rather than only comparing with the parent — this correctly handles ancestors. For **LCA**, use the property that if both nodes are less than root, LCA is in the left subtree; if both are greater, it is in the right subtree.
 
@@ -769,7 +944,20 @@ TreeNode buildTree(Queue<String> q) {
 
 ### Heap / Priority Queue
 
-> 🌍 **Real-World:** Uber's trip dispatch uses a min-heap (priority queue) ordered by driver distance to always surface the nearest available driver in O(log n) time as new drivers come online or go offline. Twitter's trending topics pipeline uses a min-heap of size k to maintain the top-k hashtags by frequency across billions of tweets in a single O(n log k) pass — far cheaper than sorting all hashtags.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Kth Largest Element | 215 | kth | min-heap size k |
+| 2 | Top K Frequent Elements | 347 | top k | heap or bucket |
+| 3 | Merge k Sorted Lists | 23 | merge | min-heap of heads |
+| 4 | Find Median from Data Stream | 295 | running median | two heaps |
+| 5 | Task Scheduler | 621 | cooldown | max-heap + queue |
+| 6 | K Closest Points | 973 | closest k | max-heap size k |
+
+**Solve order:** 215 → 347 → 973 → 23 → 295
+
+
 
 > **💡 Pattern Recognition:** Use a **min-heap of size k** to track the k largest elements seen so far — the heap top is always the kth largest. Use two heaps (max-heap for the lower half, min-heap for the upper half) for the running median problem.
 
@@ -827,7 +1015,6 @@ class MedianFinder {
 
 ### Segment Tree
 
-> 🌍 **Real-World:** Codeforces and competitive programming judges use segment trees to evaluate range-min/sum queries with updates in O(log n) inside checker solutions. Riot Games' League of Legends uses segment-tree-style range queries to compute area-of-effect damage over regions of their game map that change every frame — point updates for damage events and range queries for total damage over a zone.
 
 > **💡 Pattern Recognition:** Use a **Segment Tree** when you need both range queries (sum, min, max) AND point updates on a mutable array. If the array is static, a prefix sum is sufficient and simpler.
 
@@ -876,7 +1063,6 @@ class SegTree {
 
 ### Fenwick Tree (BIT)
 
-> 🌍 **Real-World:** LeetCode's leaderboard system uses a Fenwick Tree to count how many users have a score less than X in O(log n) — this powers the percentile ranking shown after each submission. Adobe's Photoshop histogram feature uses BIT-style prefix counts over pixel intensity buckets, enabling O(log 256) range queries for brightness/contrast analysis during live editing.
 
 > **💡 Pattern Recognition:** Use a **Fenwick Tree (Binary Indexed Tree)** as a lighter-weight alternative to a Segment Tree when you only need prefix sum queries and point updates. The code is significantly shorter and the constant factor is smaller.
 
@@ -910,7 +1096,18 @@ class BIT {
 
 ### Trie
 
-> 🌍 **Real-World:** Google Search's autocomplete suggestions are backed by a compressed Trie (Patricia tree) — each keystroke traverses one level, returning all completions under that prefix in O(L) time where L is the prefix length, regardless of the dictionary size. Amazon Alexa's wake-word detection model uses a Trie over phoneme sequences to match spoken prefixes against thousands of trigger phrases in real time on a low-power device.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Implement Trie | 208 | insert/search | node children |
+| 2 | Design Add and Search Words | 211 | '.' . | DFS on trie |
+| 3 | Word Search II | 212 | board words | trie + backtrack |
+| 4 | Replace Words | 648 | shortest root | trie prefix |
+
+**Solve order:** 208 → 211 → 648 → 212
+
+
 
 > **💡 Pattern Recognition:** Use a **Trie** (prefix tree) for problems involving word insertion, prefix search, autocomplete, or maximum XOR. If you see "dictionary of words" with prefix queries, a Trie is the right structure.
 
@@ -977,7 +1174,20 @@ int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}};
 
 ### BFS (Shortest Path in Unweighted Graph)
 
-> 🌍 **Real-World:** LinkedIn's "degrees of separation" feature uses BFS on their social graph to find the shortest connection path between two professionals — each BFS level represents one degree, and the first time a target node is reached is the shortest path. Facebook Messenger uses multi-source BFS to propagate "message delivered" and "seen" status updates outward from the recipient across their notification graph in level-order.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Number of Islands | 200 | components | DFS/BFS flood |
+| 2 | Rotting Oranges | 994 | multi-source time | BFS layers |
+| 3 | Word Ladder | 127 | shortest transform | BFS on words |
+| 4 | 01 Matrix | 542 | dist to 0 | multi-source BFS |
+| 5 | Shortest Path in Binary Matrix | 1091 | 8-dir grid | BFS |
+| 6 | Course Schedule | 207 | cycle? | topo / DFS cycle |
+
+**Solve order:** 200 → 994 → 542 → 1091 → 127
+
+
 
 > **💡 Pattern Recognition:** Use **BFS** for shortest path in an unweighted graph, minimum number of steps/transformations, or level-by-level processing. BFS guarantees the first time you reach a node is via the shortest path.
 
@@ -1054,7 +1264,18 @@ int wordLadder(String begin, String end, List<String> wordList) {
 
 ### Topological Sort (Kahn's BFS)
 
-> 🌍 **Real-World:** Google's Bazel build system uses topological sort to determine the correct order to compile thousands of interdependent modules — each target's in-degree counts its unbuilt dependencies, and Kahn's BFS ensures no target is built before its prerequisites. npm uses topological sort on the package dependency graph to install packages in the correct order, detecting circular dependencies (cycles) as a side effect of the same algorithm.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Course Schedule | 207 | can finish? | Kahn / cycle DFS |
+| 2 | Course Schedule II | 210 | order | Kahn build list |
+| 3 | Alien Dictionary | 269 | letter order | edges + topo |
+| 4 | Parallel Courses III | 2050 | time | topo + DP |
+
+**Solve order:** 207 → 210 → 269
+
+
 
 > **💡 Pattern Recognition:** Use **Topological Sort** (Kahn's algorithm) for any problem involving dependency ordering: course prerequisites, build systems, task scheduling. If after the sort not all nodes appear in the output, a cycle exists.
 
@@ -1088,7 +1309,18 @@ int[] topoSort(int n, int[][] edges) {
 
 ### Dijkstra's Algorithm
 
-> 🌍 **Real-World:** Google Maps and Waze use Dijkstra's algorithm (or its bidirectional variant) on road networks where edge weights represent travel time — the min-heap always expands the nearest unvisited intersection, guaranteeing the first path found to your destination is the shortest. Cisco's OSPF routing protocol uses Dijkstra's to compute shortest paths across the internet's router graph every time a link state changes, updating routing tables in O((V+E) log V).
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Network Delay Time | 743 | all get signal | Dijkstra |
+| 2 | Cheapest Flights Within K Stops | 787 | ≤k edges | Bellman/Dijkstra+stops |
+| 3 | Path With Minimum Effort | 1631 | min max-edge | Dijkstra on effort |
+| 4 | Swim in Rising Water | 778 | min max height | Dijkstra / BS+BFS |
+
+**Solve order:** 743 → 1631 → 778 → 787
+
+
 
 > **💡 Pattern Recognition:** Use **Dijkstra's** for shortest path in a graph with non-negative edge weights. The key insight is a greedy min-heap: always process the closest unvisited node next. Does NOT work with negative weights (use Bellman-Ford instead).
 
@@ -1124,7 +1356,19 @@ int[] dijkstra(Map<Integer, List<int[]>> graph, int src, int n) {
 
 ### Union-Find (Disjoint Set)
 
-> 🌍 **Real-World:** Kruskal's MST algorithm — used by network providers like AT&T to lay fiber optic cable with minimum total length — relies entirely on Union-Find to detect cycles in O(α(n)) per edge check. Facebook's social graph uses Union-Find to merge user accounts when duplicate profiles are detected, efficiently tracking which identity cluster each account belongs to without full graph re-traversals.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Number of Provinces | 547 | components | UF |
+| 2 | Redundant Connection | 684 | cycle edge | UF reject |
+| 3 | Accounts Merge | 721 | merge emails | UF + map |
+| 4 | Graph Valid Tree | 261 | tree? | n-1 edges + UF |
+| 5 | Number of Islands II | 305 | online add land | UF |
+
+**Solve order:** 547 → 684 → 261 → 721
+
+
 
 > **💡 Pattern Recognition:** Use **Union-Find** for dynamic connectivity queries: "are nodes X and Y in the same component?", "how many connected components are there?", cycle detection in undirected graphs, and Kruskal's MST algorithm.
 
@@ -1180,7 +1424,18 @@ int[] findRedundantConnection(int[][] edges) {
 
 ### 0/1 Knapsack
 
-> 🌍 **Real-World:** Amazon's fulfillment center packing algorithm uses 0/1 knapsack to select which items to include in a single shipment box given a weight and volume capacity — each item can ship once, and the goal is to maximize the total value of items that fit. Portfolio optimization at hedge funds like Two Sigma frames position selection as a 0/1 knapsack: each stock is either included or not, subject to a capital constraint, to maximize expected return.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Partition Equal Subset Sum | 416 | half sum | 0/1 knapsack bool |
+| 2 | Target Sum | 494 | ± | knapsack counts |
+| 3 | Last Stone Weight II | 1049 | smash | partition diff |
+| 4 | Ones and Zeroes | 474 | m zeros n ones | 2D knapsack |
+
+**Solve order:** 416 → 494 → 1049
+
+
 
 > **💡 Pattern Recognition:** Use **0/1 Knapsack** when each item can be taken at most once and you have a capacity constraint. The "0/1" means binary choice: take or skip each item. Iterate the capacity dimension **backwards** to prevent reusing the same item.
 
@@ -1203,7 +1458,18 @@ int knapsack(int[] weights, int[] values, int capacity) {
 
 ### Coin Change (LC 322) — Unbounded Knapsack
 
-> 🌍 **Real-World:** Payment processing systems at Stripe use unbounded knapsack DP to compute the minimum number of currency denominations needed to make change for any amount — the same coin can be used repeatedly (unbounded). Vending machine firmware uses this exact algorithm to calculate the minimum coins dispensed as change after a purchase.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Coin Change | 322 | min coins | unbounded DP |
+| 2 | Coin Change II | 518 | combinations | DP outer coins |
+| 3 | Combination Sum IV | 377 | permutations | DP order matters |
+| 4 | Perfect Squares | 279 | min squares | unbounded |
+
+**Solve order:** 322 → 518 → 279 → 377
+
+
 
 > **💡 Pattern Recognition:** Use **Unbounded Knapsack** (forward iteration) when items can be reused an unlimited number of times. Coin Change (minimum coins) and Coin Change 2 (count ways) are the canonical examples. The only difference from 0/1 knapsack is the iteration direction.
 
@@ -1237,7 +1503,18 @@ int change(int amount, int[] coins) {
 
 ### LCS and Edit Distance
 
-> 🌍 **Real-World:** Google Docs' real-time collaboration uses a variant of LCS/Edit Distance (operational transformation) to merge concurrent edits from two users — the minimum-edit-distance alignment determines which characters were inserted, deleted, or kept. GitHub's `git diff` output is produced by computing the LCS of two file versions and marking lines not in the common subsequence as additions or deletions.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Longest Common Subsequence | 1143 | LCS | 2D DP |
+| 2 | Edit Distance | 72 | insert/delete/replace | 2D DP |
+| 3 | Distinct Subsequences | 115 | count ways | DP |
+| 4 | Longest Palindromic Subsequence | 516 | LPS | LCS(s, reverse) |
+
+**Solve order:** 1143 → 72 → 516 → 115
+
+
 
 > **💡 Pattern Recognition:** Use **LCS (Longest Common Subsequence)** for problems comparing two strings or sequences for similarity. **Edit Distance** extends this to count the minimum insertions, deletions, and substitutions. Both follow the same 2D DP table structure.
 
@@ -1277,7 +1554,18 @@ int editDistance(String w1, String w2) {
 
 ### LIS — O(n log n)
 
-> 🌍 **Real-World:** Patience sorting — the algorithm behind LIS — is used in card sorting robotics at Amazon's fulfillment centers to find the minimum number of sorted piles needed to process a deck of packages ordered by weight. Version control systems use LIS to compute the longest chain of cleanly-applying patches in a patch series before rebasing, minimizing merge conflicts.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Longest Increasing Subsequence | 300 | LIS | patience / DP |
+| 2 | Number of LIS | 673 | count LIS | DP pairs |
+| 3 | Russian Doll Envelopes | 354 | 2D LIS | sort + LIS |
+| 4 | Maximum Length of Pair Chain | 646 | pairs | greedy / DP |
+
+**Solve order:** 300 → 673 → 354
+
+
 
 > **💡 Pattern Recognition:** Use the O(n log n) **LIS (Longest Increasing Subsequence)** algorithm when you need only the length (not the actual subsequence). The `tails` array maintains the smallest possible tail element for increasing subsequences of each length — binary search finds where the current element fits.
 
@@ -1306,7 +1594,17 @@ int lis(int[] nums) {
 
 ### Interval DP — Burst Balloons (LC 312)
 
-> 🌍 **Real-World:** Google's TensorFlow XLA compiler uses interval DP (matrix chain multiplication) to find the optimal order in which to evaluate chains of matrix operations — the O(n³) solution determines which pairs to contract first, reducing FLOPs by orders of magnitude for deep learning inference. Cloud compiler services at AWS (via LLVM) use interval DP when optimizing instruction scheduling across basic blocks to minimize pipeline stalls.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Burst Balloons | 312 | last burst | interval DP |
+| 2 | Minimum Cost to Merge Stones | 1000 | merge | interval DP |
+| 3 | Strange Printer | 664 | print | interval DP |
+
+**Solve order:** 312 first (hard but canonical)
+
+
 
 > **💡 Pattern Recognition:** Use **Interval DP** (`dp[l][r]`) when the optimal solution for a range depends on splitting it at some midpoint k, and the cost depends on what remains outside the subinterval. Problems: Burst Balloons, Matrix Chain Multiplication, Minimum Cost to Merge Stones.
 
@@ -1336,7 +1634,20 @@ int maxCoins(int[] nums) {
 
 ### Stock Problems — State Machine DP
 
-> 🌍 **Real-World:** Algorithmic trading firms like Citadel and Renaissance Technologies use state-machine DP to model optimal entry/exit strategies under constraints — the "cooldown" state models mandatory holding periods imposed by regulations, and the "transaction fee" variant directly maps to brokerage costs. Robinhood's back-testing engine uses this DP pattern to simulate optimal trading strategies over historical price data with configurable rule sets.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Best Time to Buy/Sell I | 121 | one txn | min so far |
+| 2 | Best Time II | 122 | unlimited | greedy / DP |
+| 3 | Best Time III | 123 | ≤2 txns | state DP |
+| 4 | Best Time IV | 188 | ≤k txns | state DP |
+| 5 | With Cooldown | 309 | cooldown | hold/sold/rest |
+| 6 | With Fee | 714 | fee | state DP |
+
+**Solve order:** 121 → 122 → 309 → 714 → 123 → 188
+
+
 
 > **💡 Pattern Recognition:** Use **State Machine DP** for stock problems with constraints (cooldown, transaction limits, fees). Model each day as a state transition: `hold`, `sold` (just sold), `rest` (cooldown/idle). The transitions encode the rules of buying and selling.
 
@@ -1362,7 +1673,21 @@ int maxProfitCooldown(int[] prices) {
 
 ## BACKTRACKING TEMPLATE
 
-> 🌍 **Real-World:** Google's constraint-satisfaction solver (used in Google Calendar for meeting scheduling) uses backtracking with pruning to find valid time slots across participants — it tries each candidate slot, prunes branches that conflict with existing events, and backtracks on failure. Compiler register allocation uses backtracking search to assign CPU registers to variables under graph-coloring constraints, with pruning to avoid exponential blowup.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Subsets | 78 | all subsets | backtrack include/skip |
+| 2 | Permutations | 46 | all perms | swap or used[] |
+| 3 | Combination Sum | 39 | reuse allowed | backtrack with start |
+| 4 | Combination Sum II | 40 | no reuse, dups | sort + skip dups |
+| 5 | N-Queens | 51 | place n queens | row/col/diag masks |
+| 6 | Word Search | 79 | path in grid | DFS backtrack |
+| 7 | Palindrome Partitioning | 131 | pal parts | DFS + isPal |
+
+**Solve order:** 78 → 46 → 39 → 40 → 79 → 51
+
+
 
 > **💡 Pattern Recognition:** Use **Backtracking** for exhaustive search problems: subsets, permutations, combinations, and constraint-satisfaction problems (N-Queens, Sudoku). The template is always: choose, explore, unchoose.
 
@@ -1445,7 +1770,20 @@ void nQueens(List<List<String>> res, char[][] board, int row, int n,
 
 ## INTERVAL PROBLEMS
 
-> 🌍 **Real-World:** Google Calendar uses interval merging to detect and highlight overlapping meeting blocks — given a list of booked intervals, it merges them in O(n log n) to show a consolidated "busy" timeline. Calendly's scheduling algorithm uses the Meeting Rooms II pattern (minimum rooms needed) to determine the maximum concurrent bookings, capping the number of simultaneous appointments that can be accepted.
+> 🎯 **Solve these (problem-first).** Code each before reading the template below.
+
+| # | Problem | LC | Trigger | Approach |
+|---|---------|----|---------|----------|
+| 1 | Merge Intervals | 56 | overlap merge | sort + sweep |
+| 2 | Insert Interval | 57 | insert + merge | binary / linear |
+| 3 | Non-overlapping Intervals | 435 | min removals | sort by end greedy |
+| 4 | Meeting Rooms | 252 | can attend all? | sort + check |
+| 5 | Meeting Rooms II | 253 | min rooms | sort starts/ends or heap |
+| 6 | Car Pooling | 1094 | capacity | diff array / heap |
+
+**Solve order:** 56 → 57 → 252 → 253 → 435
+
+
 
 > **💡 Pattern Recognition:** Use the **sort-then-merge** approach when intervals may overlap and you need to consolidate them. For scheduling problems (minimum rooms needed), the two-pointer approach on sorted start/end times is cleaner than using a heap.
 
@@ -1488,7 +1826,6 @@ int minMeetingRooms(int[][] intervals) {
 
 ## BIT MANIPULATION
 
-> 🌍 **Real-World:** Linux's `epoll` and `select` system calls use bitmasks to track which file descriptors are ready for I/O — a single 64-bit integer represents 64 FDs, and `fd_set` operations like FD_SET/FD_ISSET are O(1) bit operations. Google's Bloom filter (used in Chrome's Safe Browsing and BigTable) hashes each URL into k bit positions in a bitmask; a URL is "possibly malicious" if all k bits are set — leveraging XOR and bitwise OR across billions of entries.
 
 > **💡 Pattern Recognition:** Use **bit manipulation** for problems involving powers of two, unique elements in arrays where others appear multiple times, or generating all subsets. XOR is especially powerful: `a ^ a = 0` and `a ^ 0 = a`, so XOR-ing all elements cancels paired values.
 
@@ -2198,34 +2535,6 @@ Backtracking:     subsets, permutations, combinations, N-Queens
 - [ ] Shortest Palindrome — KMP (LC 214)
 
 ---
-
-### FAANG Must-Solve List
-
-> **💡 Pattern Recognition:** These problems appear most frequently in FAANG interviews. Know each one well enough to code it from scratch without hints. Focus on explaining your approach before coding.
-
-| Problem | Pattern | Difficulty |
-|---------|---------|------------|
-| Two Sum (LC 1) | Hash Map | Easy |
-| 3Sum (LC 15) | Sort + Two Pointers | Medium |
-| Container With Most Water (LC 11) | Two Pointers | Medium |
-| Merge Intervals (LC 56) | Sort + Sweep | Medium |
-| LRU Cache (LC 146) | DLL + HashMap | Medium |
-| LFU Cache (LC 460) | HashMap + Min-heap | Hard |
-| Word Ladder (LC 127) | BFS | Hard |
-| Course Schedule I+II (LC 207, 210) | Topo Sort | Medium |
-| Number of Islands (LC 200) | BFS/DFS | Medium |
-| Coin Change (LC 322) | DP | Medium |
-| LCS (LC 1143) | DP on Strings | Medium |
-| Edit Distance (LC 72) | DP on Strings | Hard |
-| Burst Balloons (LC 312) | Partition DP | Hard |
-| Find Median from Stream (LC 295) | Two Heaps | Hard |
-| Serialize/Deserialize Binary Tree (LC 297) | BFS/DFS | Hard |
-| Median of Two Sorted Arrays (LC 4) | Binary Search | Hard |
-| Alien Dictionary (LC 269) | Topo Sort | Hard |
-| Trapping Rain Water (LC 42) | Monotonic Stack | Hard |
-| Sliding Window Maximum (LC 239) | Monotonic Deque | Hard |
-| Longest Consecutive Sequence (LC 128) | HashSet | Medium |
-
 
 ---
 
