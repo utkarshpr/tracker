@@ -23,7 +23,7 @@ export default function Login() {
     signInWithGoogle,
     continueAsGuest,
     authError,
-    isFirebaseConfigured: configured,
+    isSupabaseConfigured: configured,
     syncing,
   } = useAuth()
 
@@ -51,10 +51,10 @@ export default function Login() {
     setError('')
     try {
       await signInWithGoogle()
+      // OAuth redirects away; keep spinner if the page is navigating
     } catch {
       setShake(true)
       setTimeout(() => setShake(false), 600)
-    } finally {
       setLoading(false)
     }
   }
@@ -131,17 +131,17 @@ export default function Login() {
               </button>
 
               <p className="login-sync-hint">
-                Your streaks, notes, todos, and studied topics save to your account.
+                Your streaks, notes, todos, and studied topics save to your Supabase account.
               </p>
             </>
           ) : (
             <div className="login-setup-box">
-              <p className="login-setup-title">Google sign-in needs a quick Firebase setup</p>
+              <p className="login-setup-title">Google sign-in needs a quick Supabase setup</p>
               <ol className="login-setup-steps">
-                <li>Create a project at console.firebase.google.com</li>
-                <li>Enable Authentication → Google</li>
-                <li>Create a Firestore database</li>
-                <li>Copy config into <code>.env</code> (see <code>.env.example</code>)</li>
+                <li>Create a project at supabase.com</li>
+                <li>Enable Authentication → Providers → Google</li>
+                <li>Run the SQL in <code>supabase/schema.sql</code></li>
+                <li>Copy URL + anon key into <code>.env</code> (see <code>.env.example</code>)</li>
               </ol>
             </div>
           )}
@@ -171,7 +171,7 @@ export default function Login() {
         </div>
 
         <div className="login-footer-badges">
-          <span className="login-badge">Cloud sync</span>
+          <span className="login-badge">Supabase sync</span>
           <span className="login-badge">Google Auth</span>
           <span className="login-badge">Free tier</span>
         </div>

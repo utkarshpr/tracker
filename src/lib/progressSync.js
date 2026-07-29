@@ -1,5 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from './firebase'
+import { supabase } from './supabase'
 
 /** Keys we persist locally and mirror to the cloud per user. */
 export const SYNC_KEYS = [
@@ -45,29 +44,45 @@ function writeLocalBundle(data = {}) {
   }
 }
 
-function userDoc(uid) {
-  return doc(db, 'users', uid)
+async function upsertProgress(uid, data, updatedAtMs) {
+  const { error } = await supabase
+    .from('user_progress')
+    .upsert(
+      {
+        user_id: uid,
+        data,
+        updated_at_ms: updatedAtMs,
+        updated_at: new Date(updatedAtMs).toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+  if (error) throw error
 }
 
 /** Pull cloud progress; if empty, push local. If both exist, prefer newer updatedAt. */
 export async function hydrateProgressFromCloud(uid) {
-  if (!db || !uid) return { source: 'local' }
-  const snap = await getDoc(userDoc(uid))
+  if (!supabase || !uid) return { source: 'local' }
+
+  const { data: row, error } = await supabase
+    .from('user_progress')
+    .select('data, updated_at_ms')
+    .eq('user_id', uid)
+    .maybeSingle()
+
+  if (error) throw error
+
   const local = readLocalBundle()
   const localUpdated = Number(localStorage.getItem('faang_sync_updated_at') || 0)
 
-  if (!snap.exists()) {
-    await setDoc(userDoc(uid), {
-      data: local,
-      updatedAt: serverTimestamp(),
-      updatedAtMs: Date.now(),
-    }, { merge: true })
+  if (!row) {
+    const now = Date.now()
+    await upsertProgress(uid, local, now)
+    localStorage.setItem('faang_sync_updated_at', String(now))
     return { source: 'local-pushed' }
   }
 
-  const remote = snap.data() || {}
-  const remoteMs = remote.updatedAtMs || 0
-  const remoteData = remote.data || {}
+  const remoteMs = Number(row.updated_at_ms || 0)
+  const remoteData = row.data || {}
 
   if (remoteMs >= localUpdated && Object.keys(remoteData).length) {
     writeLocalBundle(remoteData)
@@ -75,30 +90,24 @@ export async function hydrateProgressFromCloud(uid) {
     return { source: 'cloud' }
   }
 
-  await setDoc(userDoc(uid), {
-    data: local,
-    updatedAt: serverTimestamp(),
-    updatedAtMs: Date.now(),
-  }, { merge: true })
+  const now = Date.now()
+  await upsertProgress(uid, local, now)
+  localStorage.setItem('faang_sync_updated_at', String(now))
   return { source: 'local-newer' }
 }
 
 let saveTimer = null
 
-/** Debounced push of local progress to Firestore. */
+/** Debounced push of local progress to Supabase. */
 export function scheduleProgressPush(uid) {
-  if (!db || !uid) return
+  if (!supabase || !uid) return
   clearTimeout(saveTimer)
   saveTimer = setTimeout(async () => {
     try {
       const data = readLocalBundle()
       const now = Date.now()
       localStorage.setItem('faang_sync_updated_at', String(now))
-      await setDoc(userDoc(uid), {
-        data,
-        updatedAt: serverTimestamp(),
-        updatedAtMs: now,
-      }, { merge: true })
+      await upsertProgress(uid, data, now)
     } catch (err) {
       console.warn('Progress sync failed:', err)
     }
@@ -106,14 +115,10 @@ export function scheduleProgressPush(uid) {
 }
 
 export function pushProgressNow(uid) {
-  if (!db || !uid) return Promise.resolve()
+  if (!supabase || !uid) return Promise.resolve()
   clearTimeout(saveTimer)
   const data = readLocalBundle()
   const now = Date.now()
   localStorage.setItem('faang_sync_updated_at', String(now))
-  return setDoc(userDoc(uid), {
-    data,
-    updatedAt: serverTimestamp(),
-    updatedAtMs: now,
-  }, { merge: true })
+  return upsertProgress(uid, data, now)
 }
