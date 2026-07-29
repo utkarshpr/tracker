@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { touchProgress } from '../lib/progressSync'
 
 const STORAGE_KEY = 'faang_todos_v1'
 
@@ -8,6 +9,7 @@ function load() {
 }
 function save(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  touchProgress()
   window.dispatchEvent(new CustomEvent('faang_todos_updated'))
 }
 

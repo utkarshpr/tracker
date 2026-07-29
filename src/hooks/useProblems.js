@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { touchProgress } from '../lib/progressSync'
 
 const KEY = 'faang_problems_v1'
 
@@ -7,7 +8,10 @@ function load() {
   catch { return {} }
 }
 
-function persist(data) { localStorage.setItem(KEY, JSON.stringify(data)) }
+function persist(data) {
+  localStorage.setItem(KEY, JSON.stringify(data))
+  touchProgress()
+}
 
 export function useProblems() {
   const [done, setDone] = useState(load)

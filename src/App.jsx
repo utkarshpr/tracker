@@ -8,7 +8,7 @@ import DailyTracker from './components/DailyTracker'
 import StarField from './components/StarField'
 import SearchModal from './components/SearchModal'
 import PomodoroTimer from './components/PomodoroTimer'
-import Login, { checkSession, clearSession } from './components/Login'
+import Login from './components/Login'
 import TodoReminder from './components/TodoReminder'
 import ReminderAlarm from './components/ReminderAlarm'
 import ThemePicker from './components/ThemePicker'
@@ -17,14 +17,14 @@ import { useProgress } from './hooks/useProgress'
 import { useTheme } from './hooks/useTheme'
 import { useNotes } from './hooks/useNotes'
 import { useProblems } from './hooks/useProblems'
+import { useAuth } from './hooks/useAuth'
 
 const rawFiles = import.meta.glob(
   ['../desgin.md', '../FAANG-Preparation/**/*.md'],
   { query: '?raw', import: 'default', eager: true }
 )
 
-export default function App() {
-  const [authed,       setAuthed]       = useState(() => checkSession())
+function AppShell() {
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [sidebarOpen,  setSidebarOpen]  = useState(true)
@@ -34,6 +34,7 @@ export default function App() {
   const [todoOpen,        setTodoOpen]        = useState(false)
   const [themePickerOpen, setThemePickerOpen] = useState(false)
 
+  const { user, logout } = useAuth()
   const fileTree = useMemo(() => buildFileTree(rawFiles), [])
   const progress = useProgress()
   const streak   = progress.getStreak()
@@ -41,7 +42,6 @@ export default function App() {
   const { notes, getNote, saveNote, deleteNote } = useNotes()
   const problems = useProblems()
 
-  // Sidebar auto-hide after 10s of no sidebar interaction
   const sidebarTimerRef = useRef(null)
   const resetSidebarTimer = useCallback(() => {
     clearTimeout(sidebarTimerRef.current)
@@ -54,7 +54,6 @@ export default function App() {
     return () => clearTimeout(sidebarTimerRef.current)
   }, [sidebarOpen, resetSidebarTimer])
 
-  // ⌘K / Ctrl+K global shortcut
   useEffect(() => {
     const handler = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -66,17 +65,14 @@ export default function App() {
     return () => globalThis.removeEventListener('keydown', handler)
   }, [])
 
-  const handleLogin = () => setAuthed(true)
-
-  const handleLock = useCallback(() => {
-    clearSession()
-    setAuthed(false)
+  const handleLock = useCallback(async () => {
+    await logout()
     setSelectedFile(null)
     setSelectedMonth(null)
     setNoteOpen(false)
     setTodoOpen(false)
     setSidebarOpen(true)
-  }, [])
+  }, [logout])
 
   const handleSelectFile = (file) => {
     setSelectedFile(file)
@@ -101,13 +97,10 @@ export default function App() {
     }
   }
 
-  if (!authed) return <Login onLogin={handleLogin} />
-
   return (
     <div className="app">
       <StarField theme={theme} />
 
-      {/* Edge hover zone — reveals sidebar when cursor touches left edge */}
       {!sidebarOpen && (
         <div className="sidebar-edge-hover" aria-hidden="true" onMouseEnter={() => setSidebarOpen(true)} />
       )}
@@ -140,6 +133,7 @@ export default function App() {
           onOpenThemePicker={() => setThemePickerOpen(true)}
           onLock={handleLock}
           onOpenTodo={() => setTodoOpen(true)}
+          user={user}
         />
 
         <main className="main-content">
@@ -212,4 +206,26 @@ export default function App() {
       />
     </div>
   )
+}
+
+export default function App() {
+  const { isAuthenticated, loading, syncing, syncReady, user, guest } = useAuth()
+
+  if (loading || (isAuthenticated && user && (syncing || !syncReady))) {
+    return (
+      <div className="login-bg login-boot">
+        <div className="login-orb login-orb-1" />
+        <div className="login-orb login-orb-2" />
+        <div className="login-boot-card">
+          <span className="login-spinner" />
+          <p>{syncing ? 'Syncing your progress…' : 'Loading…'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) return <Login />
+
+  const syncKey = user?.uid || (guest ? 'guest' : 'anon')
+  return <AppShell key={syncKey} />
 }

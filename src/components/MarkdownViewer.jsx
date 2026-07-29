@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { extractTOC, extractTasksFromMd } from '../utils/parseFiles'
+import { touchProgress } from '../lib/progressSync'
 
 const TOC_DONE_KEY = 'faang_toc_done_v1'
 
@@ -11,7 +12,10 @@ function loadTocDone() {
   try { return JSON.parse(localStorage.getItem(TOC_DONE_KEY)) ?? {} }
   catch { return {} }
 }
-function saveTocDone(data) { localStorage.setItem(TOC_DONE_KEY, JSON.stringify(data)) }
+function saveTocDone(data) {
+  localStorage.setItem(TOC_DONE_KEY, JSON.stringify(data))
+  touchProgress()
+}
 
 export default function MarkdownViewer({
   file, isStudied, onMarkStudied, onUnmark,

@@ -2414,6 +2414,139 @@ input { font-family: inherit; }
 
 /* Form */
 .login-form { display: flex; flex-direction: column; gap: 1.1rem; }
+.login-form-social { gap: 1rem; }
+
+.login-google-btn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7rem;
+  width: 100%;
+  padding: .95rem 1.1rem;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  color: #fff;
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 10px 40px rgba(0,0,0,.25);
+}
+.login-google-btn:hover:not(.loading) {
+  transform: translateY(-1px);
+  border-color: rgba(165,180,252,.45);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(99,102,241,.12));
+  box-shadow: 0 0 24px rgba(99,102,241,.25), 0 12px 40px rgba(0,0,0,.3);
+}
+.login-google-btn:active:not(.loading) { transform: translateY(0) scale(.98); }
+.login-google-btn.loading { opacity: .75; cursor: not-allowed; }
+.login-google-icon { flex-shrink: 0; }
+
+.login-sync-hint {
+  margin: 0;
+  text-align: center;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: rgba(255,255,255,.45);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  color: rgba(255,255,255,.28);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+}
+
+.login-guest-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .25rem;
+  width: 100%;
+  padding: .85rem 1rem;
+  border: 1px dashed rgba(255,255,255,.14);
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255,255,255,.72);
+  font-size: .88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+.login-guest-btn:hover:not(:disabled) {
+  border-color: rgba(165,180,252,.35);
+  color: #fff;
+  background: rgba(255,255,255,.03);
+}
+.login-guest-btn:disabled { opacity: .5; cursor: not-allowed; }
+.login-guest-sub {
+  font-size: .72rem;
+  font-weight: 400;
+  color: rgba(255,255,255,.35);
+}
+
+.login-setup-box {
+  padding: 1rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid rgba(251,191,36,.25);
+  background: rgba(251,191,36,.06);
+}
+.login-setup-title {
+  margin: 0 0 .65rem;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #fcd34d;
+}
+.login-setup-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: rgba(255,255,255,.55);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+.login-setup-steps code {
+  font-size: .72rem;
+  color: #c4b5fd;
+}
+
+.login-boot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-boot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2.5rem;
+  border-radius: 16px;
+  background: rgba(15,15,25,.72);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.65);
+  font-size: .9rem;
+}
+
+.header-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 .login-field { display: flex; flex-direction: column; gap: .42rem; position: relative; }
 .login-label {
@@ -2554,6 +2687,20 @@ input { font-family: inherit; }
 [data-theme="light"] .login-field.focused .login-input { background: rgba(139,92,246,.04); border-color: rgba(139,92,246,.4); }
 [data-theme="light"] .login-badge { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: var(--text3); }
 [data-theme="light"] .login-float-symbol { color: var(--accent2); }
+[data-theme="light"] .login-google-btn {
+  background: #fff;
+  color: #1f2937;
+  border-color: rgba(0,0,0,.1);
+  box-shadow: 0 8px 28px rgba(99,102,241,.12);
+}
+[data-theme="light"] .login-google-btn:hover:not(.loading) {
+  background: #fff;
+  border-color: rgba(99,102,241,.35);
+}
+[data-theme="light"] .login-guest-btn { color: var(--text2); border-color: rgba(0,0,0,.12); }
+[data-theme="light"] .login-guest-sub { color: var(--text3); }
+[data-theme="light"] .login-sync-hint { color: var(--text3); }
+[data-theme="light"] .login-divider { color: var(--text3); }
 
 /* ─── Panic Lock Button ───────────────────────────────────────────── */
 .lock-btn {

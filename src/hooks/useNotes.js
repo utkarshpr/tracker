@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { touchProgress } from '../lib/progressSync'
 
 const NOTES_KEY = 'faang_notes_v1'
 
@@ -19,6 +20,7 @@ export function useNotes() {
       setNotes(prev => {
         const next = { ...prev, [fileId]: { text, updatedAt: new Date().toISOString() } }
         localStorage.setItem(NOTES_KEY, JSON.stringify(next))
+        touchProgress()
         return next
       })
     }, 500)
@@ -29,6 +31,7 @@ export function useNotes() {
       const next = { ...prev }
       delete next[fileId]
       localStorage.setItem(NOTES_KEY, JSON.stringify(next))
+      touchProgress()
       return next
     })
   }, [])

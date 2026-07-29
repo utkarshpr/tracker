@@ -4,6 +4,7 @@ import ActivityHeatmap from './ActivityHeatmap'
 import { useCountUp } from '../hooks/useCountUp'
 import { extractTasksFromMd, extractTOC } from '../utils/parseFiles'
 import DayTimeline from './DayTimeline'
+import { touchProgress } from '../lib/progressSync'
 
 const TODO_KEY    = 'faang_todos_v1'
 const TOC_DONE_KEY = 'faang_toc_done_v1'
@@ -40,6 +41,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
 
   const saveTodoData = useCallback((next) => {
     localStorage.setItem(TODO_KEY, JSON.stringify(next))
+    touchProgress()
     window.dispatchEvent(new CustomEvent('faang_todos_updated'))
     setTodoData(next)
   }, [])

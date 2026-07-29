@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { touchProgress } from '../lib/progressSync'
 
 const KEY = 'faang_todos_v1'
 
@@ -12,6 +13,7 @@ function patchReminders(updater) {
     const d = JSON.parse(localStorage.getItem(KEY)) ?? { todos: [], reminders: [] }
     const next = { ...d, reminders: updater(d.reminders ?? []) }
     localStorage.setItem(KEY, JSON.stringify(next))
+    touchProgress()
     window.dispatchEvent(new CustomEvent('faang_todos_updated'))
   } catch {}
 }

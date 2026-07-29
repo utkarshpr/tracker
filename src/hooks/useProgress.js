@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { touchProgress } from '../lib/progressSync'
 
 const PROGRESS_KEY = 'faang_progress_v1'
 const DAILY_KEY    = 'faang_daily_v1'
@@ -46,6 +47,7 @@ function load(key, fallback) {
 
 function save(key, value) {
   localStorage.setItem(key, JSON.stringify(value))
+  touchProgress()
 }
 
 export function useProgress() {

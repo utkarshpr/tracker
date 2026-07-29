@@ -4,6 +4,7 @@ export default function Header({
   selectedFile, selectedMonth, onBack, onToggleSidebar,
   onOpenDaily, onOpenSearch, onToggleNotes, noteOpen, hasNote,
   streak, theme, onToggleTheme, onOpenThemePicker, onLock, onOpenTodo,
+  user,
 }) {
   const backLabel = selectedFile && selectedMonth ? selectedMonth.label : 'Home'
   const [lockConfirm, setLockConfirm] = useState(false)
@@ -110,17 +111,21 @@ export default function Header({
           </svg>
         </button>
 
-        {/* Panic Lock Button */}
+        {/* Panic Lock / Sign out */}
         <button
           className={`icon-btn lock-btn ${lockConfirm ? 'lock-confirm' : ''}`}
           onClick={handleLockClick}
-          title={lockConfirm ? 'Click again to lock' : 'Lock (panic button)'}
+          title={lockConfirm ? 'Click again to sign out' : (user ? 'Sign out' : 'Lock')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          <span className="btn-label lock-label">{lockConfirm ? 'Confirm?' : 'Lock'}</span>
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="" className="header-avatar" referrerPolicy="no-referrer" />
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          )}
+          <span className="btn-label lock-label">{lockConfirm ? 'Confirm?' : (user ? 'Sign out' : 'Lock')}</span>
         </button>
       </div>
     </header>
