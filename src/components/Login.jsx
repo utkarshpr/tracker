@@ -136,12 +136,12 @@ export default function Login() {
             </>
           ) : (
             <div className="login-setup-box">
-              <p className="login-setup-title">Google sign-in needs a quick Supabase setup</p>
+              <p className="login-setup-title">Supabase env vars not loaded</p>
               <ol className="login-setup-steps">
-                <li>Create a project at supabase.com</li>
-                <li>Enable Authentication → Providers → Google</li>
-                <li>Run the SQL in <code>supabase/schema.sql</code></li>
-                <li>Copy URL + anon key into <code>.env</code> (see <code>.env.example</code>)</li>
+                <li><strong>Local:</strong> put keys in <code>.env</code>, then restart <code>npm run dev</code></li>
+                <li><strong>Vercel:</strong> Settings → Environment Variables → add both vars → Redeploy</li>
+                <li>Names must be exactly <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code></li>
+                <li>Also run <code>supabase/schema.sql</code> and enable Google Auth in Supabase</li>
               </ol>
             </div>
           )}

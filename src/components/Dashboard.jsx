@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import ProgressRing from './ProgressRing'
 import ActivityHeatmap from './ActivityHeatmap'
+import Reveal from './Reveal'
 import { useCountUp } from '../hooks/useCountUp'
 import { extractTasksFromMd, extractTOC } from '../utils/parseFiles'
 import DayTimeline from './DayTimeline'
@@ -82,41 +83,54 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
   const countPct       = useCountUp(totalPct,   1400, 100)
 
   const months = fileTree.sections.filter(s => s.key.startsWith('Month-'))
+  const continueFile = useMemo(
+    () => fileTree.allFiles.find(f => !progress.isStudied(f.id)) || fileTree.allFiles[0] || null,
+    [fileTree.allFiles, progress.progress]
+  )
 
   return (
     <div className="dashboard">
       {/* Hero */}
       <div className="hero">
-        <div className="hero-bg" />
-        <div className="hero-aurora" />
+        <div className="hero-bg" aria-hidden="true" />
+        <div className="hero-aurora" aria-hidden="true" />
         <div className="hero-content">
           <div className="hero-badge">
-            <span>🎯</span>
-            <span>SDE-3 Interview Preparation</span>
+            <span className="hero-badge-dot" aria-hidden="true" />
+            <span>SDE-3 Interview Prep</span>
           </div>
           <h1 className="hero-title">
-            <span className="gradient-text">FAANG</span>
-            <span> Study Hub</span>
+            <span className="hero-title-brand">FAANG Prep</span>
           </h1>
           <p className="hero-subtitle">
-            3 months · {totalTopics} topics · {totalSections} sections · {totalProblems} problems · algorithms, system design &amp; leadership
+            Your elite study hub — {totalTopics} topics, {totalProblems} problems, and a 3-month path through algorithms, system design &amp; leadership.
           </p>
+          <div className="hero-actions">
+            {continueFile && (
+              <button type="button" className="hero-cta hero-cta-primary" onClick={() => onSelectFile(continueFile)}>
+                Continue studying
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </button>
+            )}
+            <button type="button" className="hero-cta hero-cta-ghost" onClick={onOpenDaily}>
+              Today&apos;s routine
+            </button>
+          </div>
           <div className="hero-stats">
             <div className="stat">
               <div className="stat-val gradient-text">{countDone}</div>
               <div className="stat-label">Completed</div>
             </div>
-            <div className="stat-divider" />
             <div className="stat">
               <div className="stat-val">{countRemaining}</div>
               <div className="stat-label">Remaining</div>
             </div>
-            <div className="stat-divider" />
             <div className="stat">
-              <div className="stat-val" style={{ color: '#fbbf24' }}>🔥 {countStreak}</div>
-              <div className="stat-label">Day Streak</div>
+              <div className="stat-val" style={{ color: '#fbbf24' }}>{countStreak}</div>
+              <div className="stat-label">Day streak</div>
             </div>
-            <div className="stat-divider" />
             <div className="stat">
               <div className="stat-val gradient-text">{countPct}%</div>
               <div className="stat-label">Progress</div>
@@ -124,7 +138,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
           </div>
         </div>
         <div className="hero-ring">
-          <ProgressRing pct={totalPct} size={160} stroke={10} color="#8b5cf6" />
+          <ProgressRing pct={totalPct} size={168} stroke={11} color="#22d3ee" />
           <div className="hero-ring-label">
             <div className="hero-ring-pct">{countPct}%</div>
             <div className="hero-ring-text">done</div>
@@ -133,7 +147,9 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
       </div>
 
       {/* Activity Heatmap */}
-      <ActivityHeatmap daily={progress.daily} theme={theme} />
+      <Reveal>
+        <ActivityHeatmap daily={progress.daily} theme={theme} />
+      </Reveal>
 
       {/* Today's Routine Card */}
       {(() => {
@@ -155,12 +171,12 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
         const nextTask = todayData.tasks.find(t => !t.done && parse(t.time) > mins) ?? null
 
         return (
-          <div className="dash-today-section" style={{ marginTop: '2.5rem' }}>
+          <Reveal className="dash-today-section" style={{ marginTop: '2.5rem' }}>
             <div className="section-title-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem' }}>
-                <h2 className="section-title">Today's Routine</h2>
+                <h2 className="section-title">Today&apos;s Routine</h2>
                 {isPaused && (
-                  <span className="dash-pause-chip">🛡️ Paused{pauseInfo?.reason ? ` · ${pauseInfo.reason}` : ''}</span>
+                  <span className="dash-pause-chip">Paused{pauseInfo?.reason ? ` · ${pauseInfo.reason}` : ''}</span>
                 )}
               </div>
               <button className="dash-tasks-manage-btn" onClick={onOpenDaily}>
@@ -192,10 +208,11 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
 
               {/* Task grid */}
               <div className="dash-today-tasks">
-                {todayData.tasks.map(task => (
+                {todayData.tasks.map((task, ti) => (
                   <button
                     key={task.id}
                     className={`dash-today-task ${task.done ? 'done' : ''}`}
+                    style={{ animationDelay: `${ti * 0.05}s` }}
                     onClick={() => progress.toggleDailyTask(task.id)}
                   >
                     <div className={`dash-today-check ${task.done ? 'checked' : ''}`}>
@@ -216,25 +233,26 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
 
               <DayTimeline tasks={todayData.tasks} />
             </div>
-          </div>
+          </Reveal>
         )
       })()}
 
       {/* Month Cards */}
-      <div className="section-title-row">
-        <h2 className="section-title">Monthly Progress</h2>
-        <span className="section-subtitle">Track your study journey</span>
-      </div>
-      <div className="month-grid">
-        {months.map((month, i) => {
-          const { done, total, pct } = progress.getMonthProgress(month.files)
-          return (
-            <button
-              key={month.key}
-              className="month-card"
-              style={{ '--mc': month.color, animationDelay: `${i * 0.12}s` }}
-              onClick={() => onSelectMonth(month)}
-            >
+      <Reveal>
+        <div className="section-title-row">
+          <h2 className="section-title">Monthly Progress</h2>
+          <span className="section-subtitle">Track your study journey</span>
+        </div>
+        <div className="month-grid">
+          {months.map((month, i) => {
+            const { done, total, pct } = progress.getMonthProgress(month.files)
+            return (
+              <button
+                key={month.key}
+                className="month-card"
+                style={{ '--mc': month.color, '--i': i }}
+                onClick={() => onSelectMonth(month)}
+              >
               <div className="month-card-top">
                 <div>
                   <div className="month-card-label">{month.label}</div>
@@ -277,6 +295,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
           )
         })}
       </div>
+      </Reveal>
 
       {/* Notes */}
       {(() => {
@@ -288,7 +307,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
           : []
 
         return (
-          <div style={{ marginTop: '2.5rem' }}>
+          <Reveal style={{ marginTop: '2.5rem' }}>
             <div className="section-title-row">
               <h2 className="section-title">My Notes</h2>
               {noteEntries.length > 0 && (
@@ -358,7 +377,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
                 })}
               </div>
             )}
-          </div>
+          </Reveal>
         )
       })()}
 
@@ -374,7 +393,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
         const overdue = todoData.reminders.filter(r => !r.fired && r.ts <= now)
 
         return (
-          <div className="dash-tasks-section" style={{ marginTop: '2.5rem' }}>
+          <Reveal className="dash-tasks-section" style={{ marginTop: '2.5rem' }}>
             <div className="section-title-row">
               <h2 className="section-title">Tasks &amp; Reminders</h2>
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
@@ -506,7 +525,7 @@ export default function Dashboard({ fileTree, onSelectFile, onSelectMonth, progr
                 )}
               </div>
             </div>
-          </div>
+          </Reveal>
         )
       })()}
     </div>
