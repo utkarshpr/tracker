@@ -23,10 +23,10 @@
 | [12](#part-12--advanced-production-patterns) | Advanced Production Patterns | Distributed lock, rate limiter, session store |
 | [13](#part-13--quick-reference) | Quick Reference | Memory, latency, expiry, keyspace |
 | [14](#part-14--senior-level-tradeoffs-and-design-decisions) | Senior-Level Tradeoffs | Single thread, 16384 slots, no B-Tree |
-| [NEW](#hzset-pattern--hash--zset-combined-leaderboard-with-metadata) | **HZSET Pattern** | **Hash + ZSet combined for leaderboard + metadata** |
-| [NEW](#redis-function--fcall-redis-70) | **Redis FUNCTION** | **Redis 7.x named functions vs EVAL** |
-| [NEW](#redis-streams--consumer-groups-deep-dive) | **Streams (Deep Dive)** | **Consumer groups, XREADGROUP, XCLAIM** |
-| [NEW](#redis-client-side-caching-resp3-tracking) | **Client-Side Caching** | **RESP3 tracking, invalidation notifications** |
+| [15](#hzset-pattern--hash--zset-combined-leaderboard-with-metadata) | **HZSET Pattern** | **Hash + ZSet combined for leaderboard + metadata** |
+| [16](#redis-function--fcall-redis-70) | **Redis FUNCTION** | **Redis 7.x named functions vs EVAL** |
+| [17](#redis-streams--consumer-groups-deep-dive) | **Streams (Deep Dive)** | **Consumer groups, XREADGROUP, XCLAIM** |
+| [18](#redis-client-side-caching-resp3-tracking) | **Client-Side Caching** | **RESP3 tracking, invalidation notifications** |
 
 ---
 
