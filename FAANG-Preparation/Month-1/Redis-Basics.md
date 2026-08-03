@@ -382,39 +382,98 @@ GEOHASH key member
 
 ### 3.1 SDS (Simple Dynamic String)
 
-**Why not C strings?**
-- C strings are null-terminated → can't store binary data with null bytes
-- `strlen()` is O(N) — traverses to find null terminator
-- No bounds checking → buffer overflow vulnerabilities
 
-**SDS structure:**
+SDS (Simple Dynamic Strings) is a lightweight C library for handling strings dynamically. It was created by Salvatore Sanfilippo and is widely used in Redis because it provides safer and more efficient string manipulation than standard C strings.
+
+#### Why SDS is Needed
+
+Standard C strings (`char *`) have several limitations:
+
+* You must manually track the string length.
+* Appending strings often requires `malloc()` and `realloc()`.
+* Buffer overflows can occur if memory is not managed carefully.
+
+SDS solves these problems by storing metadata (such as string length and available free space) along with the character array.
+
+#### Structure of SDS
+
+Internally, an SDS string contains a header followed by the actual character buffer.
 
 ```c
-struct sdshdr64 {  // for strings > 1MB
-    uint64_t len;    // used length
-    uint64_t alloc;  // allocated capacity (excluding header + null terminator)
-    unsigned char flags;  // 3 bits for type, 5 bits unused
-    char buf[];      // the actual bytes + a null terminator at buf[len]
+struct sdshdr {
+    int len;    // Length of the string
+    int free;   // Unused space in the buffer
+    char buf[]; // Character array
 };
-
-// There are 5 variants: sdshdr5, sdshdr8, sdshdr16, sdshdr32, sdshdr64
-// Chosen based on string length to minimize header overhead
 ```
 
-**Features:**
-- O(1) `len` via the `len` field
-- Binary-safe: `len` tracks actual length, null terminator is just a convenience for C library compatibility
-- **Pre-allocation on append:** when string grows, Redis allocates more than needed to avoid repeated realloc:
-  - If new length < 1MB: allocate 2× new length
-  - If new length >= 1MB: allocate new length + 1MB
-- **Lazy shrink:** `sdsMakeRoomFor` grows but never shrinks. `sdsRemoveFreeSpace` explicitly trims. This means strings that grow then shrink waste memory — tracked via `alloc - len`.
+##### Memory Layout
 
-**Memory layout:**
-
-```text
-[sdshdr8 header: len=5, alloc=10, flags=1] [H][e][l][l][o][\0][...5 bytes free...]
-                                            ^-- buf pointer points here
 ```
++------------------------------+
+| len | free | h | e | l | l | o | \0 |
++------------------------------+
+               ^
+               |
+            s points here
+```
+
+Although `s` points to the character array (`buf`), SDS can access the header by moving backward in memory.
+
+
+
+#### Advantages of SDS
+
+* O(1) length retrieval (no need to scan the string).
+* Automatic memory management during concatenation.
+* Reduced reallocations by maintaining extra free space.
+* Binary-safe, allowing storage of data containing `'\0'`.
+* Compatible with C APIs because the buffer remains null-terminated.
+
+#### Comparison: C Strings vs SDS
+
+| Feature            | C String | SDS  |
+| ------------------ | -------- | ---- |
+| Stores length      | No       | Yes  |
+| Length lookup      | O(n)     | O(1) |
+| Automatic resizing | No       | Yes  |
+| Binary-safe        | No       | Yes  |
+| Null-terminated    | Yes      | Yes  |
+
+#### Example Program
+
+```c
+#include "sds.h"
+
+int main() {
+    sds s = sdsnew("Hello");
+    s = sdscat(s, " World");
+
+    printf("%s\n", s);
+    printf("Length = %zu\n", sdslen(s));
+
+    sdsfree(s);
+    return 0;
+}
+```
+
+**Output:**
+
+```
+Hello World
+Length = 11
+```
+
+#### Applications
+
+SDS is commonly used in:
+
+* High-performance servers
+* Database systems (such as Redis)
+* Network applications
+* Memory-efficient C programs
+
+
 
 > **💡 Key Insight:** The SDS pointer returned to Redis code points to `buf`, not the header. To get the header, do `(void*)(ptr - sizeof(sdshdr8))`. This means SDS is compatible with C string functions (they just see `buf`).
 
@@ -424,22 +483,358 @@ struct sdshdr64 {  // for strings > 1MB
 
 ### 3.2 ZipList (Legacy) and ListPack (Redis 7+)
 
-#### ZipList
+Redis uses compact memory encodings to store small collections (such as Hashes, Sorted Sets, and Streams) efficiently. Earlier versions of Redis used **ZipList**, while Redis 7+ replaced it with **ListPack**, which offers a simpler and more efficient implementation.
 
-A contiguous block of memory encoding a list/hash/zset compactly.
+#### Why ZipList Was Introduced
 
-```text
-[zlbytes][zltail][zllen][entry1][entry2]...[entryN][zlend(0xFF)]
+Storing small collections using normal hash tables or linked structures wastes memory because each element requires pointers, metadata, and separate memory allocations.
+
+For example, storing a small hash:
+
+```redis
+HSET user:1 name Utkarsh age 27 city Pune
 ```
 
-Each entry:
+Using a normal hash table would require multiple nodes and pointers:
 
-```text
-[prevlen (1 or 5 bytes)][encoding (1-5 bytes)][data]
+```
+Bucket
+   |
+   +----> Node
+            |
+            +--> Key Pointer
+            |
+            +--> Value Pointer
 ```
 
-- `prevlen`: length of the previous entry (to traverse backward). If prev entry is < 254 bytes, prevlen is 1 byte. Otherwise 5 bytes.
-- `encoding`: determines data type (integer or string) and length
+Most of the memory is spent on metadata rather than the actual data.
+
+ZipList stores everything inside one continuous memory block, significantly reducing memory usage.
+
+---
+
+#### ZipList (Legacy)
+
+A ZipList is a compact contiguous memory structure where all elements are stored one after another.
+
+#### Memory Layout
+
+```
++---------------------------------------------------------+
+| zlbytes | zltail | zllen | Entry | Entry | ... | End |
++---------------------------------------------------------+
+```
+
+Each entry contains:
+
+```
++-----------------------------------------+
+| prevlen | encoding | actual data |
++-----------------------------------------+
+```
+
+Example:
+
+```
+[
+    "name",
+    "Utkarsh",
+    "age",
+    "27",
+    "city",
+    "Pune"
+]
+```
+
+Memory representation:
+
+```
++------------------------------------------------+
+| Header | name | Utkarsh | age | 27 | city | Pune | End |
++------------------------------------------------+
+```
+
+Everything is stored in a single memory allocation.
+
+---
+
+#### Advantages of ZipList
+
+* Very memory efficient.
+* Single continuous memory allocation.
+* Better CPU cache locality.
+* No pointer overhead.
+
+---
+
+#### Problems with ZipList
+
+Although memory efficient, ZipList had several design limitations.
+
+##### 1. Cascade Updates
+
+Each entry stores the length of the **previous entry**.
+
+```
+Entry A
+Length = 250 bytes
+```
+
+The next entry stores
+
+```
+prevlen = 1 byte
+```
+
+If Entry A grows beyond **254 bytes**, Redis must expand `prevlen` from **1 byte** to **5 bytes**.
+
+```
+Before
+
+A (250 Bytes)
+↓
+B (prevlen = 1)
+
+After
+
+A (260 Bytes)
+↓
+B (prevlen = 5)
+```
+
+Since B becomes larger, C's `prevlen` also changes.
+
+Then D changes.
+
+Then E changes.
+
+```
+A
+↓
+B
+↓
+C
+↓
+D
+↓
+E
+```
+
+One modification can trigger updates to many subsequent entries.
+
+This phenomenon is called **Cascade Update**.
+
+---
+
+##### 2. Expensive Insertions
+
+Suppose we have:
+
+```
+A   B   C   D   E
+```
+
+Insert a new element between **B** and **C**.
+
+```
+A   B   X   C   D   E
+```
+
+Redis must shift the remaining memory:
+
+```
+Move ---> C D E
+```
+
+using `memmove()`.
+
+Therefore, insertion complexity is **O(N)**.
+
+---
+
+##### 3. Complex Implementation
+
+ZipList encoding rules became increasingly complicated.
+
+The implementation contained many edge cases and was difficult to maintain.
+
+---
+
+#### ListPack (Redis 7+)
+
+To solve ZipList's limitations, Redis introduced **ListPack**.
+
+ListPack is a redesigned compact encoding that is:
+
+* Simpler
+* Faster
+* Easier to maintain
+* Free from cascade updates
+
+---
+
+#### Memory Layout
+
+```
++------------------------------------------------+
+| total_bytes | num_elements | entries | End |
++------------------------------------------------+
+```
+
+Each entry contains:
+
+```
++--------------------------------------+
+| encoding | data | length |
++--------------------------------------+
+```
+
+Notice that ListPack stores the **length of the current entry**, instead of the **length of the previous entry**.
+
+This small design change eliminates cascade updates.
+
+---
+
+#### Example
+
+```
+[
+    "name",
+    "Utkarsh",
+    "age",
+    "27"
+]
+```
+
+Stored internally as:
+
+```
++---------------------------------------------------+
+| Header |
+| enc | name     | len |
+| enc | Utkarsh  | len |
+| enc | age      | len |
+| enc | 27       | len |
+| End |
++---------------------------------------------------+
+```
+
+---
+
+#### Why ListPack Eliminates Cascade Updates
+
+ZipList:
+
+```
+Entry A changes
+        ↓
+Entry B metadata changes
+        ↓
+Entry C metadata changes
+        ↓
+Entry D metadata changes
+```
+
+A small modification can affect every following entry.
+
+---
+
+ListPack:
+
+```
+Entry A changes
+
+Only Entry A is updated.
+```
+
+Since each entry stores **its own length**, later entries remain unchanged.
+
+---
+
+#### Advantages of ListPack
+
+* No cascade updates.
+* Lower implementation complexity.
+* Very memory efficient.
+* Better maintainability.
+* Improved performance for updates.
+* Better CPU cache locality.
+
+---
+
+## Comparison: ZipList vs ListPack
+
+| Feature | ZipList | ListPack |
+|---------|----------|----------|
+| Introduced | Redis 2.x | Redis 7+ |
+| Memory Efficient | Yes | Yes |
+| Continuous Memory | Yes | Yes |
+| Cascade Update | Yes | No |
+| Metadata Stores | Previous Entry Length | Current Entry Length |
+| Implementation | Complex | Simpler |
+| Middle Insertion | O(N) | O(N) |
+| Sequential Scan | O(N) | O(N) |
+| Maintenance | Difficult | Easier |
+
+---
+
+#### Time Complexity
+
+| Operation | ZipList | ListPack |
+|-----------|----------|----------|
+| Sequential Scan | O(N) | O(N) |
+| Append | O(1) (Amortized) | O(1) (Amortized) |
+| Middle Insert | O(N) | O(N) |
+| Delete | O(N) | O(N) |
+| Cascade Update | Possible | Eliminated |
+
+---
+
+#### Where ListPack is Used
+
+In Redis 7+, ListPack is used internally for:
+
+* Small Hashes
+* Small Sorted Sets (ZSets)
+* Stream Entries
+* Other compact internal encodings
+
+As these collections grow larger, Redis automatically converts them to more scalable data structures such as Hash Tables or Skip Lists.
+
+---
+
+#### Example
+
+```c
+// Pseudo representation
+
+ListPack
+
+Header
+------------------------------------
+name
+Utkarsh
+age
+27
+city
+Pune
+------------------------------------
+End
+```
+
+Redis automatically parses this compact structure during reads and writes.
+
+---
+
+#### Applications
+
+ListPack is widely used in Redis because it:
+
+* Minimizes memory usage for small datasets.
+* Improves CPU cache performance.
+* Reduces memory fragmentation.
+* Simplifies Redis's internal implementation.
+* Replaces the legacy ZipList encoding in Redis 7+.
 
 > **💡 Key Insight:** **Why ZipList is cache friendly:** All entries packed together in one malloc. CPU prefetches the entire structure. For small lists (< 128 entries), this beats a linked list with scattered allocations.
 
@@ -595,27 +990,386 @@ typedef struct dict {
 
 ### 3.7 Bloom Filter (RedisBloom module)
 
-**What it is:** A **probabilistic data structure** that tests set membership. Can have **false positives** (says "member" when it isn't), but NEVER **false negatives** (if it says "not member," it definitely isn't).
+A **Bloom Filter** is a **probabilistic data structure** used to efficiently test whether an element is a member of a set.
 
-**Structure:** A bit array of m bits, and k hash functions.
+Unlike traditional data structures such as Hash Sets, Bloom Filters do **not store the actual elements**. Instead, they store a compact bitmap that indicates whether an element is **probably present** or **definitely absent**.
 
-**Add element:** Hash with each of the k functions → k positions in the bit array → set each to 1.
+Bloom Filters are extremely memory efficient, making them ideal for applications handling millions or billions of keys.
 
-**Query element:** Hash with same k functions → k positions → if ALL are 1, return "probably present." If ANY is 0, return "definitely absent."
+#### Why Bloom Filters are Needed
 
-**False positive rate:** `(1 - e^(-kn/m))^k` where n = number of inserted elements.
+Consider a system that stores millions of usernames.
 
-**Optimal k:** `k = (m/n) × ln(2)` minimizes false positive rate for given m and n.
+Using a HashSet:
 
-#### Bloom Filter Commands (RedisBloom module)
+```
+alice
+bob
+charlie
+...
+10 Million Users
+```
+
+Every username occupies memory.
+
+For very large datasets, this becomes expensive.
+
+Instead, a Bloom Filter stores only bits.
+
+```
+011001001101001101010010101010...
+```
+
+This dramatically reduces memory usage while providing very fast lookups.
+
+---
+
+#### How Bloom Filter Works
+
+A Bloom Filter consists of:
+
+* A bit array of **m bits**
+* **k independent hash functions**
+
+Initially, every bit is **0**.
+
+```
+Bit Array
+
++------------------------------------------------+
+|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
++------------------------------------------------+
+```
+
+---
+
+#### Adding an Element
+
+Suppose we insert:
+
+```
+"Redis"
+```
+
+The value is hashed using **k hash functions**.
+
+```
+Hash1("Redis") → 2
+Hash2("Redis") → 7
+Hash3("Redis") → 12
+```
+
+The corresponding bits are set to **1**.
+
+```
++------------------------------------------------+
+|0|0|1|0|0|0|0|1|0|0|0|0|1|0|0|0|
++------------------------------------------------+
+```
+
+The actual string `"Redis"` is **not stored**.
+
+Only the bits are updated.
+
+---
+
+#### Querying an Element
+
+Suppose we search for:
+
+```
+"Redis"
+```
+
+The same hash functions generate:
+
+```
+2
+7
+12
+```
+
+Redis checks those positions.
+
+```
+Bit 2  = 1
+Bit 7  = 1
+Bit 12 = 1
+```
+
+Since all bits are **1**, Redis returns:
+
+```
+Probably Present
+```
+
+---
+
+Suppose we search for:
+
+```
+"MySQL"
+```
+
+Hashes produce:
+
+```
+1
+6
+14
+```
+
+Redis checks:
+
+```
+Bit 1 = 0
+```
+
+Since one bit is **0**, Redis immediately returns:
+
+```
+Definitely Not Present
+```
+
+---
+
+#### Memory Illustration
+
+Initially
+
+```
++------------------------------------------------+
+|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
++------------------------------------------------+
+```
+
+Insert **Redis**
+
+```
++------------------------------------------------+
+|0|0|1|0|0|0|0|1|0|0|0|0|1|0|0|0|
++------------------------------------------------+
+```
+
+Insert **Kafka**
+
+```
++------------------------------------------------+
+|0|1|1|0|1|0|0|1|0|1|0|0|1|0|1|0|
++------------------------------------------------+
+```
+
+Only bits change.
+
+No actual strings are stored.
+
+---
+
+#### False Positives
+
+Bloom Filters may incorrectly report that an element exists.
+
+Example:
+
+```
+Bit positions
+
+2
+7
+12
+```
+
+These bits may already be set by completely different elements.
+
+Searching for
+
+```
+MongoDB
+```
+
+might also generate
+
+```
+2
+7
+12
+```
+
+Since all bits are already **1**, Redis returns:
+
+```
+Probably Present
+```
+
+even though MongoDB was never inserted.
+
+This is called a **False Positive**.
+
+---
+
+#### False Negatives
+
+Bloom Filters **never produce false negatives**.
+
+If any required bit is **0**, the element definitely does not exist.
+
+```
+Bit 4 = 0
+
+↓
+
+Element is definitely absent.
+```
+
+This property makes Bloom Filters very useful for eliminating unnecessary database lookups.
+
+---
+
+#### Probability of False Positives
+
+The false positive probability is:
+
+```
+            -kn/m
+P = (1 - e)^k
+```
+
+Where:
+
+* **m** = Number of bits
+* **n** = Number of inserted elements
+* **k** = Number of hash functions
+
+As more elements are inserted, the probability of false positives increases.
+
+---
+
+#### Optimal Number of Hash Functions
+
+To minimize false positives:
+
+```
+k = (m / n) × ln(2)
+```
+
+Where:
+
+* **m** = Total number of bits
+* **n** = Expected number of elements
+
+Choosing the optimal **k** provides the best balance between memory usage and lookup accuracy.
+
+---
+
+#### Time Complexity
+
+| Operation | Complexity |
+|-----------|------------|
+| Insert | O(k) |
+| Lookup | O(k) |
+| Delete | Not Supported |
+| Memory Usage | O(m) |
+
+Since **k** is usually a small constant (5–10), insertions and lookups are effectively **O(1)**.
+
+---
+
+#### Bloom Filter Commands (RedisBloom Module)
 
 ```redis
 BF.ADD key item
 BF.EXISTS key item
 BF.MADD key item [item ...]
 BF.MEXISTS key item [item ...]
-BF.RESERVE key error_rate capacity  -- create with specific parameters
+BF.RESERVE key error_rate capacity
 ```
+
+Example:
+
+```redis
+BF.RESERVE users 0.01 1000000
+
+BF.ADD users alice
+
+BF.ADD users bob
+
+BF.EXISTS users alice
+
+BF.EXISTS users redis
+```
+
+Output:
+
+```
+1
+1
+1
+0
+```
+
+---
+
+#### Real-World Applications
+
+Bloom Filters are widely used for:
+
+* Preventing unnecessary database lookups.
+* Web crawler URL deduplication.
+* Checking if a cache may contain a key.
+* Spam filtering.
+* Password breach detection.
+* Distributed databases.
+* CDN and DNS caching.
+* Recommendation systems.
+
+---
+
+#### Advantages
+
+* Extremely memory efficient.
+* Very fast insert and lookup.
+* Scales to billions of elements.
+* Never produces false negatives.
+* Excellent cache locality.
+* Simple implementation.
+
+---
+
+#### Limitations
+
+* False positives are possible.
+* Elements cannot be retrieved.
+* Standard Bloom Filters do not support deletion.
+* Accuracy decreases as more elements are inserted.
+
+---
+
+#### Comparison: Hash Set vs Bloom Filter
+
+| Feature | Hash Set | Bloom Filter |
+|---------|----------|--------------|
+| Stores Elements | Yes | No |
+| Memory Usage | High | Very Low |
+| Lookup | O(1) | O(1) |
+| False Positives | No | Yes |
+| False Negatives | No | Never |
+| Supports Delete | Yes | No |
+| Suitable for Billions of Keys | Expensive | Excellent |
+
+---
+
+#### Applications in Redis
+
+Redis uses Bloom Filters (via the **RedisBloom** module) for:
+
+* API request deduplication.
+* Cache penetration protection.
+* Username or email existence checks.
+* Fraud detection systems.
+* Large-scale membership testing.
+* Web crawling and URL filtering.
+
+Bloom Filters help Redis answer **"Have I probably seen this key before?"** while using only a fraction of the memory required by traditional data structures.
 
 > **📖 Real-World Example:** **Cache penetration prevention.** Before hitting the DB, check Bloom filter. If "not present," skip DB entirely. False positives just cause occasional unnecessary DB hits — acceptable.
 
@@ -724,13 +1478,344 @@ io-threads-do-reads yes  # enable multi-threaded reads (not just writes)
 
 ### 5.1 RDB (Redis Database Snapshot)
 
-**What it is:** A point-in-time snapshot of all data, saved as a compact binary file (`dump.rdb`).
+#### What is RDB?
 
-**How it works:**
-1. `BGSAVE` command (or triggered by `save` config rules): Redis calls `fork()`
-2. Parent process continues serving requests normally
-3. Child process: iterates all databases and all keys, serializes them into RDB format, writes to temp file
-4. When done: atomically rename temp file → `dump.rdb`
+Redis Database (RDB) is Redis's **snapshot-based persistence mechanism**. It periodically saves the entire dataset into a compact binary file called **`dump.rdb`**.
+
+Unlike AOF, which records every write command, RDB stores the **complete state of the database at a specific point in time**.
+
+The resulting file is compact, loads very quickly during startup, and is ideal for backups and disaster recovery.
+
+
+
+#### Why is RDB Needed?
+
+Imagine Redis contains:
+
+```redis
+SET name Utkarsh
+SET age 27
+LPUSH tasks "Learn Redis"
+HSET user:1 city Pune
+```
+
+Instead of storing every command ever executed, Redis stores only the **final state** of the database.
+
+```
+Current Database
+
+name   → Utkarsh
+age    → 27
+tasks  → ["Learn Redis"]
+user:1 → {city : Pune}
+
+        │
+        ▼
+
+      dump.rdb
+```
+
+When Redis restarts, it simply loads the snapshot back into memory.
+
+
+
+#### How RDB Works
+
+Redis creates snapshots in the background using a child process so that the parent process can continue serving client requests.
+
+The entire process consists of six steps.
+
+
+
+#### Step 1 – Trigger Snapshot
+
+An RDB snapshot can be created by:
+
+* `BGSAVE`
+* Automatic `save` configuration rules
+* Redis shutdown (if configured)
+
+Example:
+
+```redis
+BGSAVE
+```
+
+Redis immediately starts creating the snapshot.
+
+
+
+#### Step 2 – Fork a Child Process
+
+Redis calls the operating system's **`fork()`**.
+
+```
+                 fork()
+
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+ Parent Process          Child Process
+```
+
+The child initially shares the parent's memory using **Copy-on-Write (CoW)**.
+
+No actual memory is copied during `fork()`.
+
+
+
+#### Step 3 – Parent Continues Serving Clients
+
+While the child creates the snapshot, the parent continues processing requests.
+
+```
+Client
+
+SET age 28
+
+LPUSH queue job1
+
+GET name
+```
+
+Users do not experience downtime.
+
+
+
+#### Step 4 – Child Creates the Snapshot
+
+The child scans every Redis database.
+
+For every database it iterates through:
+
+* Every key
+* Every value
+* Every data structure
+
+```
+Database
+
+name → Utkarsh
+
+age → 27
+
+tasks → [Learn Redis]
+
+user:1 → {city : Pune}
+```
+
+The child serializes everything into Redis's compact binary RDB format.
+
+```
+Memory
+
+        │
+
+Serialize
+
+        │
+
+Binary Format
+
+        │
+
+Write
+```
+
+
+
+#### Step 5 – Write to Temporary File
+
+Instead of writing directly to `dump.rdb`, Redis writes to a temporary file.
+
+```
+temp-12345.rdb
+```
+
+This ensures that if Redis crashes during snapshot creation, the previous snapshot remains valid.
+
+
+
+#### Step 6 – Atomic Rename
+
+Once the child finishes writing the snapshot successfully, Redis performs an atomic rename.
+
+```
+temp-12345.rdb
+
+        │
+
+rename()
+
+        │
+
+dump.rdb
+```
+
+The operating system guarantees that `rename()` is atomic.
+
+Redis therefore always has either:
+
+* The previous snapshot.
+* The newly completed snapshot.
+
+There is never a partially written snapshot.
+
+
+
+#### Complete Flow
+
+```
+                 BGSAVE
+
+                    │
+                    ▼
+
+                fork()
+
+        ┌───────────┴───────────┐
+        │                       │
+ Parent Process          Child Process
+ Continue Serving        Scan All Databases
+ Client Requests         Serialize All Keys
+        │                Write Binary Snapshot
+        │                       │
+        │                temp.rdb
+        │                       │
+        └──────────────► rename()
+                                │
+                                ▼
+                           dump.rdb
+```
+
+
+
+#### Copy-on-Write During BGSAVE
+
+Initially, the parent and child share the same physical memory.
+
+```
+             Physical Memory
+
+         +-----------------------+
+         | Redis Dataset         |
+         +-----------------------+
+
+          ▲                 ▲
+          │                 │
+      Parent           Child
+```
+
+Suppose the parent executes:
+
+```redis
+SET age 28
+```
+
+The operating system copies **only the modified memory page**.
+
+```
+Before Write
+
+Parent ----\
+            \
+             ---> Shared Memory Page
+            /
+Child -----/
+
+
+After Write
+
+Parent -----> New Memory Page
+
+Child ------> Original Memory Page
+```
+
+This allows the child to continue writing a consistent snapshot while the parent keeps accepting new writes.
+
+
+
+#### Advantages
+
+* Compact binary file.
+* Fast Redis startup.
+* Excellent for backups.
+* Lower disk usage than AOF.
+* Minimal impact on client requests.
+* Background snapshot creation using Copy-on-Write.
+
+
+
+#### Limitations
+
+* Recent writes made after the last snapshot may be lost if Redis crashes.
+* Snapshot creation can temporarily increase memory usage because of Copy-on-Write.
+* Not suitable when every write must be immediately durable.
+
+
+
+#### Time Complexity
+
+| Operation | Complexity |
+|-----------|------------|
+| Fork Child | O(1) (Copy-on-Write) |
+| Scan Dataset | O(N) |
+| Serialize Dataset | O(N) |
+| Write Snapshot | O(N) |
+| Atomic Rename | O(1) |
+
+Where **N** is the number of keys stored in Redis.
+
+
+
+#### RDB vs AOF
+
+| Feature | RDB | AOF |
+|---------|-----|-----|
+| Storage Format | Binary Snapshot | Append Log |
+| File Size | Smaller | Larger |
+| Startup Speed | Faster | Slower |
+| Data Loss | Possible | Minimal |
+| Human Readable | No | Yes |
+| Backup Friendly | Excellent | Good |
+
+
+
+#### Applications
+
+RDB is commonly used for:
+
+* Periodic backups.
+* Disaster recovery.
+* Fast Redis restart.
+* Initial replication synchronization.
+* Migrating Redis data between servers.
+
+
+
+#### Interview Questions
+
+**Q1. Why does Redis use `fork()` for BGSAVE?**
+
+To create a background child process that shares memory with the parent using Copy-on-Write, allowing Redis to continue serving clients while generating the snapshot.
+
+
+
+**Q2. Why does Redis write to a temporary file instead of `dump.rdb` directly?**
+
+If Redis crashes while writing the snapshot, the existing `dump.rdb` remains intact. Only after the snapshot is fully written does Redis atomically replace the old file.
+
+
+
+**Q3. Why is `rename()` atomic?**
+
+The operating system guarantees that the file replacement happens in a single operation, ensuring Redis always has a valid snapshot.
+
+
+
+**Q4. Why is RDB faster than AOF during startup?**
+
+RDB loads a compact binary snapshot directly into memory, whereas AOF must replay every write command to rebuild the database.
 
 > **💡 Key Insight:** **fork() and COW (Copy-on-Write):**
 > - `fork()` creates a child process that initially shares all the parent's virtual memory pages (no actual copying)
@@ -779,20 +1864,338 @@ dir /var/lib/redis
 | `appendfsync everysec` | fsync once per second (default) | ~1 second | ~100,000 writes/sec |
 | `appendfsync no` | let OS decide | up to 30 seconds | Maximum |
 
-**AOF Rewrite:**
-Over time, AOF grows unbounded. `BGREWRITEAOF` triggers a rewrite:
-1. Fork child process
-2. Child: iterate all databases, write minimal commands to reconstruct current state (e.g., an old SET then DEL becomes nothing; a 100-element LPUSH becomes one RPUSH with all 100 elements)
-3. Meanwhile, parent: buffer new write commands in an in-memory AOF rewrite buffer AND append to old AOF file
-4. When child finishes: parent appends the in-memory buffer to the new AOF file, atomically replaces old AOF with new
-5. The new AOF file is much smaller
 
-**AOF rewrite trigger (automatic):**
+#### AOF Rewrite (BGREWRITEAOF)
 
-```text
-auto-aof-rewrite-percentage 100  # rewrite when AOF is 100% larger than at last rewrite
-auto-aof-rewrite-min-size 64mb   # minimum size to trigger rewrite
+As Redis processes write operations, the **Append Only File (AOF)** keeps growing because every write command is appended to the end of the file.
+
+For example:
+
+```redis
+SET counter 1
+SET counter 2
+SET counter 3
+SET counter 4
+SET counter 5
 ```
+
+Although only the final value (`5`) is needed to reconstruct the database, the AOF still contains all five commands.
+
+Over time, this causes:
+
+* Large AOF files.
+* Slower Redis restart times.
+* Increased disk usage.
+
+To solve this problem, Redis performs **AOF Rewrite**.
+
+
+#### What is AOF Rewrite?
+
+AOF Rewrite creates a **new optimized AOF file** that contains only the minimum set of commands required to rebuild the current dataset.
+
+Instead of copying the old AOF file, Redis scans the **current in-memory data** and generates fresh commands.
+
+For example:
+
+Old AOF
+
+```redis
+SET counter 1
+SET counter 2
+SET counter 3
+SET counter 4
+SET counter 5
+```
+
+Rewritten AOF
+
+```redis
+SET counter 5
+```
+
+Both produce the same final database state, but the rewritten file is much smaller.
+
+#### How AOF Rewrite Works
+
+#### Step 1 – Fork a Child Process
+
+When `BGREWRITEAOF` is executed, Redis calls `fork()`.
+
+```
+                fork()
+
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+   Parent Process        Child Process
+```
+
+Using **Copy-on-Write (CoW)**, the child initially shares the parent's memory without copying the dataset.
+
+This allows the parent to continue serving client requests while the child rewrites the AOF.
+
+
+#### Step 2 – Child Generates a New AOF
+
+The child process scans every database stored in memory.
+
+```
+Database
+
+counter → 5
+user → Utkarsh
+list → [1,2,3]
+```
+
+Instead of replaying historical operations, it writes only the commands needed to recreate the current state.
+
+Example 1
+
+Old AOF
+
+```redis
+SET name Alice
+SET name Bob
+SET name Charlie
+```
+
+New AOF
+
+```redis
+SET name Charlie
+```
+
+
+Example 2
+
+Old AOF
+
+```redis
+SET key value
+DEL key
+```
+
+Current database:
+
+```
+Key does not exist.
+```
+
+New AOF
+
+```
+Nothing is written.
+```
+
+Since the key no longer exists, Redis simply skips it.
+
+
+Example 3
+
+Old AOF
+
+```redis
+LPUSH numbers 1
+LPUSH numbers 2
+LPUSH numbers 3
+...
+LPUSH numbers 100
+```
+
+Current List
+
+```
+1
+2
+3
+...
+100
+```
+
+New optimized command
+
+```redis
+RPUSH numbers 1 2 3 ... 100
+```
+
+One command replaces hundreds of operations.
+
+
+#### Step 3 – Parent Continues Serving Clients
+
+While the child is rewriting the file, Redis continues accepting writes.
+
+```
+Client
+
+SET age 27
+
+LPUSH queue job1
+
+DEL temp
+```
+
+The parent performs **two actions** for every new write.
+
+```
+                    New Write
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+ Append to Old AOF          Store in Rewrite Buffer
+```
+
+The write is:
+
+1. Appended to the existing AOF file.
+2. Stored in an in-memory **AOF Rewrite Buffer**.
+
+This ensures that no client writes are lost during the rewrite.
+
+
+#### Step 4 – Child Finishes
+
+The child produces a brand-new optimized AOF file.
+
+```
+new.aof
+```
+
+At this moment, it may still be missing the latest client writes that occurred during rewriting.
+
+
+#### Step 5 – Parent Merges Buffered Writes
+
+The parent appends all commands stored in the **AOF Rewrite Buffer** to the new AOF.
+
+```
+New Optimized AOF
+
+SET counter 5
+
+SET age 27
+
+LPUSH queue job1
+
+DEL temp
+```
+
+Now the new AOF contains:
+
+* The optimized database snapshot.
+* Every write that occurred during rewriting.
+
+No data is lost.
+
+
+#### Step 6 – Atomic File Replacement
+
+Finally, Redis performs an atomic file replacement.
+
+```
+Old AOF
+
+appendonly.aof
+
+        │
+
+        ▼
+
+rename()
+
+        │
+
+        ▼
+
+New Optimized AOF
+```
+
+The old file is replaced using the operating system's atomic `rename()` operation.
+
+If Redis crashes before this step, the old AOF remains intact.
+
+If the rename succeeds, the new optimized AOF immediately becomes active.
+
+
+#### Complete Flow
+
+```
+                 BGREWRITEAOF
+
+                       │
+                       ▼
+                fork() Child
+                       │
+        ┌──────────────┴──────────────┐
+        │                             │
+Parent Process                 Child Process
+Continue Serving Clients       Scan Memory
+        │                      Generate Optimized AOF
+        │
+New Client Writes
+        │
+        ├──► Append to Old AOF
+        │
+        └──► Store in Rewrite Buffer
+                               │
+                               ▼
+                     Child Finishes Writing
+                               │
+                               ▼
+              Parent Appends Rewrite Buffer
+                               │
+                               ▼
+                Atomic rename(new.aof)
+                               │
+                               ▼
+                    Replace Old AOF
+```
+
+
+#### Advantages of AOF Rewrite
+
+* Significantly reduces AOF file size.
+* Faster Redis startup and recovery.
+* Eliminates redundant commands.
+* Reduces disk space usage.
+* Runs in the background without blocking clients.
+* Guarantees consistency using Copy-on-Write and the rewrite buffer.
+
+
+#### Time Complexity
+
+| Operation | Complexity |
+|-----------|------------|
+| Fork Child | O(1) (Copy-on-Write) |
+| Scan Dataset | O(N) |
+| Write Optimized AOF | O(N) |
+| Buffer Client Writes | O(1) |
+| Atomic Rename | O(1) |
+
+Where **N** is the number of keys stored in Redis.
+
+
+## Interview Questions
+
+### Why doesn't Redis simply copy the old AOF file?
+
+Because the old AOF contains every historical write operation. Redis instead rebuilds the AOF from the **current in-memory state**, producing a much smaller and cleaner file.
+
+
+### Why does Redis use `fork()`?
+
+`fork()` allows the child process to rewrite the AOF while the parent continues serving client requests using **Copy-on-Write**, avoiding a full memory copy.
+
+
+### Why is the Rewrite Buffer required?
+
+While the child rewrites the AOF, new client writes continue to arrive. The Rewrite Buffer temporarily stores these writes so they can be appended to the new AOF before it replaces the old one.
+
+
+### Why is `rename()` atomic?
+
+The operating system guarantees that the file replacement happens in a single atomic step. This ensures Redis always has either the old valid AOF or the new valid AOF, preventing partial or corrupted files after crashes.
 
 > **⚠️ Production Gotcha:** **AOF truncation** — If Redis crashes during an fsync, the AOF may have a partially written command at the end. With `aof-load-truncated yes`, Redis loads what it can and ignores the partial command. With `no`, it refuses to start and you must manually fix with `redis-check-aof --fix`.
 
@@ -813,6 +2216,8 @@ aof-use-rdb-preamble yes  # default yes in Redis 4+
 ```
 
 **Startup behavior:** Redis detects the magic bytes at the start of the AOF file. If it looks like an RDB (`REDIS`), loads the RDB portion first, then replays the AOF tail.
+
+> RDB and AOF are both Redis persistence mechanisms, but they work differently. RDB stores a compact binary snapshot of the entire database at a specific point in time. On recovery, Redis loads this snapshot directly into memory. AOF, on the other hand, logs every write command. During recovery, Redis rebuilds the database by replaying those commands in order. RDB is faster to load and uses less disk space, while AOF provides better durability because it preserves the sequence of write operations.
 
 #### Persistence Comparison
 
@@ -1015,15 +2420,46 @@ Each node maintains a list of all other nodes in the cluster. Periodically:
 
 > **⚠️ Production Gotcha:** **Hot Key** is one of the most common Redis incidents in production at scale.
 
-**Solutions:**
 
-| Solution | Mechanism | Trade-off |
-|----------|-----------|-----------|
-| Local in-process cache | Cache value in app memory (100ms-1s TTL) | Slight staleness; 1000 servers × 1s = ~1000 reads/sec to Redis |
-| Key sharding | `hot_key:0` through `hot_key:99`, random read | Write amplification (update all 100); distributed load |
-| Read replicas | Route reads to replicas of the hot key's node | Replication lag; more infrastructure |
-| Client-side caching (Redis 6+) | Invalidation messages on key change via RESP3 | Requires RESP3 client library support |
+#### Solutions
 
+| Solution | How it Works | Advantages | Trade-offs | Best Use Case |
+|----------|--------------|------------|------------|---------------|
+| **Local In-Process Cache** | Cache the hot key inside each application instance with a short TTL (100ms–1s). Most requests are served from local memory instead of Redis. | Eliminates most Redis reads, very low latency. | Slightly stale data; each application keeps its own copy. | Configuration data, feature flags, product details. |
+| **Redis Read Replicas** | Route read requests to Redis replicas while the master continues handling writes. | Distributes read traffic across multiple Redis nodes. | Replica lag may return slightly stale data; increases infrastructure cost. | Read-heavy workloads with infrequent writes. |
+| **Key Sharding (Hot Key Splitting)** | Split one hot key into multiple keys (e.g., `views:0` to `views:99`). Reads and writes are distributed across shards. | Prevents a single Redis node from becoming a bottleneck. | More complex reads (aggregation); writes may update multiple shards. | Counters, likes, page views, metrics. |
+| **Client-Side Caching (Redis 6+)** | Clients cache frequently accessed keys locally. Redis sends invalidation messages when data changes (RESP3 Tracking). | Significantly reduces Redis traffic while maintaining freshness. | Requires RESP3-compatible client libraries. | Frequently read, rarely updated data. |
+| **Multi-Level Cache** | Use L1 (application memory) → L2 (Redis) → L3 (Database). Requests first check local cache before Redis. | Greatly reduces Redis load. | Cache synchronization is more complex. | High-QPS microservices. |
+| **CDN / Edge Cache** | Cache publicly accessible data at CDN edge locations. Requests never reach Redis. | Eliminates backend traffic for static or semi-static content. | Suitable only for public or cacheable content. | Images, videos, public APIs, static resources. |
+| **Request Batching** | Combine multiple requests for the same key into a single Redis request. | Reduces duplicate Redis operations. | Slightly increases request latency. | GraphQL, API gateways, batch processing. |
+| **Rate Limiting / Traffic Control** | Limit excessive requests from clients or throttle traffic during spikes. | Protects Redis during unexpected traffic bursts. | Some requests may be delayed or rejected. | Flash sales, DDoS protection, viral traffic. |
+| **Scale Redis Cluster** | Add more Redis nodes and rebalance slots. | Increases overall cluster capacity. | Does **not** solve a single hot key by itself because one key still belongs to one hash slot. | Overall cluster scaling, not individual hot keys. |
+
+
+
+#### Best Practices
+
+* Use **local cache** for frequently read, rarely updated data.
+* Use **key sharding** for counters and extremely hot write-heavy keys.
+* Use **read replicas** for read-heavy applications.
+* Use **client-side caching (RESP3)** when supported by your Redis client.
+* Add **rate limiting** to protect Redis from sudden traffic spikes.
+* Monitor hot keys using `redis-cli --hotkeys`, `INFO commandstats`, `LATENCY DOCTOR`, and application metrics.
+
+
+
+#### Which Solution Should I Choose?
+
+| Scenario | Recommended Solution |
+|----------|----------------------|
+| Global configuration | Local cache + Client-side caching |
+| User profile | Read replicas |
+| View counter / Like counter | Key sharding |
+| IPL live score / Cricket scoreboard | Local cache + Read replicas |
+| Flash sale inventory | Key sharding + Rate limiting |
+| Public API | CDN + Local cache |
+| Product catalog | Multi-level cache |
+| Trending news feed | Client-side caching + Read replicas |
 **Detection:**
 
 ```redis
